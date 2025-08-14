@@ -71,7 +71,7 @@ def yaml_editor_component() -> rx.Component:
                 "Reset to Example",
                 on_click=YamlEditorState.reset_yaml_content,
                 color_scheme="blue",
-                size="sm",
+                size="2",
             ),
             rx.spacer(),
             rx.text(
@@ -147,6 +147,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
