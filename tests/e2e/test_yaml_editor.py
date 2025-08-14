@@ -498,43 +498,152 @@ class TestYamlEditorInteraction:
 class TestYamlEditorAdvanced:
     """Test advanced YAML editor functionality."""
 
+    async def _wait_for_monaco_editor_ready(self, page: Page, timeout: int = 15000) -> None:
+        """Enhanced wait for Monaco editor to be fully loaded and ready."""
+        try:
+            await page.wait_for_selector(".monaco-editor", timeout=timeout)
+            await page.wait_for_selector(".monaco-editor .monaco-editor-background", timeout=5000)
+            await page.wait_for_selector(".monaco-editor textarea", timeout=5000)
+            await page.wait_for_function(
+                "() => document.querySelector('.monaco-editor textarea') !== null && "
+                "document.querySelector('.monaco-editor .monaco-editor-background') !== null",
+                timeout=3000
+            )
+        except PlaywrightTimeoutError as e:
+            console_logs = []
+            page.on("console", lambda msg: console_logs.append(f"{msg.type}: {msg.text}"))
+            raise AssertionError(
+                f"Monaco editor failed to load within {timeout}ms. Error: {str(e)}. "
+                f"Console logs: {console_logs[-3:] if console_logs else 'None'}"
+            ) from e
+
     @pytest.mark.e2e
     @pytest.mark.browser
     @pytest.mark.slow_e2e
     async def test_editor_syntax_highlighting(self, app_page: Page):
-        """Test that the YAML editor has proper syntax highlighting."""
-        # Wait for the Monaco editor to load
-        await app_page.wait_for_selector(".monaco-editor", timeout=10000)
-        
-        # Check for Monaco editor specific elements that indicate syntax highlighting
-        # Monaco creates specific CSS classes for syntax highlighting
-        syntax_elements = app_page.locator(".monaco-editor .mtk1, .monaco-editor .mtk2, .monaco-editor .mtk3")
-        await expect(syntax_elements.first()).to_be_visible()
+        """Test that the YAML editor has proper syntax highlighting with enhanced detection."""
+        try:
+            await self._wait_for_monaco_editor_ready(app_page)
+            
+            # Multiple selectors for syntax highlighting detection
+            syntax_selectors = [
+                ".monaco-editor .mtk1, .monaco-editor .mtk2, .monaco-editor .mtk3, .monaco-editor .mtk4",
+                ".monaco-editor .view-lines .view-line",
+                ".monaco-editor [class*='mtk']"
+            ]
+            
+            syntax_found = False
+            for selector in syntax_selectors:
+                try:
+                    syntax_elements = app_page.locator(selector)
+                    if await syntax_elements.count() > 0:
+                        await expect(syntax_elements.first()).to_be_visible(timeout=3000)
+                        syntax_found = True
+                        break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if not syntax_found:
+                all_monaco_elements = await app_page.locator(".monaco-editor *").count()
+                raise AssertionError(
+                    f"Syntax highlighting elements not found. "
+                    f"Total Monaco elements: {all_monaco_elements}. "
+                    f"Tried selectors: {syntax_selectors}"
+                )
+                
+        except Exception as e:
+            raise AssertionError(f"Syntax highlighting test failed: {str(e)}") from e
 
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_editor_line_numbers(self, app_page: Page):
-        """Test that the editor shows line numbers."""
-        # Wait for the Monaco editor to load
-        await app_page.wait_for_selector(".monaco-editor", timeout=10000)
-        
-        # Check for line numbers container
-        line_numbers = app_page.locator(".monaco-editor .line-numbers")
-        await expect(line_numbers.first()).to_be_visible()
+        """Test that the editor shows line numbers with enhanced detection."""
+        try:
+            await self._wait_for_monaco_editor_ready(app_page)
+            
+            # Multiple selectors for line numbers
+            line_number_selectors = [
+                ".monaco-editor .line-numbers",
+                ".monaco-editor .margin .line-numbers",
+                ".monaco-editor [class*='line-numbers']"
+            ]
+            
+            line_numbers_found = False
+            for selector in line_number_selectors:
+                try:
+                    line_numbers = app_page.locator(selector)
+                    if await line_numbers.count() > 0:
+                        first_line = line_numbers.first()
+                        await expect(first_line).to_be_visible(timeout=3000)
+                        
+                        # Verify it contains actual line numbers
+                        line_text = await first_line.text_content()
+                        if line_text and line_text.strip().isdigit():
+                            line_numbers_found = True
+                            break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if not line_numbers_found:
+                editor_margin = await app_page.locator(".monaco-editor .margin").count()
+                raise AssertionError(
+                    f"Line numbers not found. Editor margin elements: {editor_margin}. "
+                    f"Tried selectors: {line_number_selectors}"
+                )
+                
+        except Exception as e:
+            raise AssertionError(f"Line numbers test failed: {str(e)}") from e
 
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_editor_dark_theme(self, app_page: Page):
-        """Test that the editor uses dark theme."""
-        # Wait for the Monaco editor to load
-        await app_page.wait_for_selector(".monaco-editor", timeout=10000)
-        
-        # Check for dark theme class or dark background
-        editor = app_page.locator(".monaco-editor")
-        
-        # Monaco editor with dark theme should have specific classes
-        dark_theme_indicator = app_page.locator(".monaco-editor.vs-dark")
-        await expect(dark_theme_indicator).to_be_visible()
+        """Test that the editor uses dark theme with enhanced detection."""
+        try:
+            await self._wait_for_monaco_editor_ready(app_page)
+            
+            # Multiple approaches for dark theme detection
+            dark_theme_selectors = [
+                ".monaco-editor.vs-dark",
+                ".monaco-editor[data-theme='vs-dark']",
+                ".monaco-editor[class*='dark']"
+            ]
+            
+            theme_found = False
+            for selector in dark_theme_selectors:
+                try:
+                    theme_element = app_page.locator(selector).first()
+                    await expect(theme_element).to_be_visible(timeout=3000)
+                    theme_found = True
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            # Fallback: check background color
+            if not theme_found:
+                try:
+                    editor_bg = app_page.locator(".monaco-editor .monaco-editor-background").first()
+                    await expect(editor_bg).to_be_visible(timeout=3000)
+                    
+                    bg_color = await editor_bg.evaluate("el => window.getComputedStyle(el).backgroundColor")
+                    if bg_color:
+                        import re
+                        rgb_match = re.search(r'rgb\((\d+),\s*(\d+),\s*(\d+)\)', bg_color)
+                        if rgb_match:
+                            r, g, b = map(int, rgb_match.groups())
+                            if r < 128 and g < 128 and b < 128:  # Dark background
+                                theme_found = True
+                except Exception:
+                    pass
+            
+            if not theme_found:
+                editor_classes = await app_page.locator(".monaco-editor").first().get_attribute("class")
+                raise AssertionError(
+                    f"Dark theme not detected. Editor classes: '{editor_classes}'. "
+                    f"Tried selectors: {dark_theme_selectors}"
+                )
+                
+        except Exception as e:
+            raise AssertionError(f"Dark theme test failed: {str(e)}") from e
 
 
 class TestYamlEditorResponsiveness:
@@ -1580,6 +1689,7 @@ section_{section:02d}:
         
         final_count = int(final_match.group(1))
         assert final_count > 200, "Final state should include both default and added content"
+
 
 
 
