@@ -20,6 +20,7 @@ dev = [
 [package.dev-dependencies]
 dev = [
     { name = "playwright" },
+    { name = "pytest" },
 ]
 
 [package.metadata]
@@ -32,7 +33,10 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "playwright", specifier = ">=1.54.0" }]
+dev = [
+    { name = "playwright", specifier = ">=1.54.0" },
+    { name = "pytest", specifier = ">=8.4.1" },
+]
 
 [[package]]
 name = "alembic"
