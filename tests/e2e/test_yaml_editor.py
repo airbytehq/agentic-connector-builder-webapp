@@ -1,7 +1,8 @@
 """End-to-end tests for YAML editor functionality using Playwright."""
 
 import pytest
-from playwright.async_api import Page, expect
+import asyncio
+from playwright.async_api import Page, expect, TimeoutError as PlaywrightTimeoutError
 
 
 class TestYamlEditorBasicFunctionality:
@@ -1188,5 +1189,6 @@ section_{section:02d}:
         
         final_count = int(final_match.group(1))
         assert final_count > 200, "Final state should include both default and added content"
+
 
 
