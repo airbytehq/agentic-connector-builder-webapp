@@ -107,7 +107,7 @@ class TestAppConfiguration:
     @pytest.mark.unit
     def test_app_import(self):
         """Test that the app can be imported successfully."""
-        from agentic_connector_builder_webapp.app import app
+        from agentic_connector_builder_webapp.agentic_connector_builder_webapp import app
         assert app is not None
 
     @pytest.mark.unit
@@ -185,4 +185,5 @@ class TestStateManagement:
         
         yaml_editor_state.update_yaml_content("")
         assert yaml_editor_state.yaml_content == ""
+
 
