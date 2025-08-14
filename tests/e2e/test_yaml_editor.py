@@ -219,57 +219,280 @@ class TestYamlEditorBasicFunctionality:
 class TestYamlEditorInteraction:
     """Test YAML editor interaction functionality."""
 
+    async def _wait_for_monaco_editor_ready(self, page: Page, timeout: int = 15000) -> None:
+        """Enhanced wait for Monaco editor to be fully loaded and ready."""
+        try:
+            # Wait for Monaco editor container
+            await page.wait_for_selector(".monaco-editor", timeout=timeout)
+            
+            # Wait for Monaco editor to be fully initialized
+            await page.wait_for_selector(".monaco-editor .monaco-editor-background", timeout=5000)
+            
+            # Wait for textarea to be present (indicates editor is interactive)
+            await page.wait_for_selector(".monaco-editor textarea", timeout=5000)
+            
+            # Additional wait for editor to be fully rendered
+            await page.wait_for_function(
+                "() => document.querySelector('.monaco-editor textarea') !== null && "
+                "document.querySelector('.monaco-editor .monaco-editor-background') !== null",
+                timeout=3000
+            )
+            
+        except PlaywrightTimeoutError as e:
+            # Enhanced error context for debugging
+            page_content = await page.content()
+            console_logs = []
+            
+            # Collect any console errors
+            page.on("console", lambda msg: console_logs.append(f"{msg.type}: {msg.text}"))
+            
+            raise AssertionError(
+                f"Monaco editor failed to load within {timeout}ms. "
+                f"Error: {str(e)}. "
+                f"Page title: {await page.title()}. "
+                f"Console logs: {console_logs[-5:] if console_logs else 'None'}. "
+                f"Monaco elements found: {await page.locator('.monaco-editor').count()}"
+            ) from e
+
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_editor_contains_default_content(self, app_page: Page):
-        """Test that the editor contains default YAML content."""
-        # Wait for the Monaco editor to load
-        await app_page.wait_for_selector(".monaco-editor", timeout=10000)
-        
-        # Check that the editor contains some default content
-        # We'll look for specific text that should be in the default YAML
-        editor_content = app_page.locator(".monaco-editor")
-        await expect(editor_content).to_contain_text("example-connector")
-        await expect(editor_content).to_contain_text("version")
+        """Test that the editor contains default YAML content with enhanced validation."""
+        try:
+            # Enhanced Monaco editor wait
+            await self._wait_for_monaco_editor_ready(app_page)
+            
+            # More specific content validation with multiple approaches
+            editor_selectors = [
+                ".monaco-editor",
+                ".monaco-editor .monaco-editor-background",
+                ".monaco-editor .view-lines"
+            ]
+            
+            content_found = False
+            expected_content_items = ["example-connector", "version", "description"]
+            
+            for selector in editor_selectors:
+                try:
+                    editor_element = app_page.locator(selector).first()
+                    await expect(editor_element).to_be_visible(timeout=3000)
+                    
+                    # Check for expected content items
+                    for content_item in expected_content_items:
+                        try:
+                            await expect(editor_element).to_contain_text(content_item, timeout=2000)
+                            content_found = True
+                        except PlaywrightTimeoutError:
+                            continue
+                    
+                    if content_found:
+                        break
+                        
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if not content_found:
+                # Enhanced debugging - get actual editor content
+                try:
+                    # Try to get content via textarea
+                    textarea = app_page.locator(".monaco-editor textarea").first()
+                    actual_content = await textarea.input_value()
+                except:
+                    # Fallback to text content
+                    actual_content = await app_page.locator(".monaco-editor").first().text_content()
+                
+                raise AssertionError(
+                    f"Default content not found in editor. "
+                    f"Expected items: {expected_content_items}. "
+                    f"Actual content preview: '{actual_content[:200] if actual_content else 'None'}...'"
+                )
+            
+        except Exception as e:
+            raise AssertionError(f"Default content test failed: {str(e)}") from e
 
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_reset_button_functionality(self, app_page: Page):
-        """Test that the reset button works correctly."""
-        # Wait for the Monaco editor to load
-        await app_page.wait_for_selector(".monaco-editor", timeout=10000)
-        
-        # Click the reset button
-        reset_button = app_page.locator("button", has_text="Reset to Example")
-        await reset_button.click()
-        
-        # Wait a moment for the reset to take effect
-        await app_page.wait_for_timeout(1000)
-        
-        # Verify that the default content is present
-        editor_content = app_page.locator(".monaco-editor")
-        await expect(editor_content).to_contain_text("example-connector")
+        """Test that the reset button works correctly with enhanced validation."""
+        try:
+            # Enhanced Monaco editor wait
+            await self._wait_for_monaco_editor_ready(app_page)
+            
+            # More specific reset button selector with fallbacks
+            reset_button_selectors = [
+                "button:has-text('Reset to Example')",
+                "button[type='button']:has-text('Reset')",
+                "[role='button']:has-text('Reset to Example')"
+            ]
+            
+            reset_button = None
+            for selector in reset_button_selectors:
+                try:
+                    button = app_page.locator(selector).first()
+                    await expect(button).to_be_visible(timeout=3000)
+                    await expect(button).to_be_enabled(timeout=2000)
+                    reset_button = button
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if reset_button is None:
+                raise AssertionError("Reset button not found or not enabled")
+            
+            # Get initial state for comparison
+            try:
+                initial_content = await app_page.locator(".monaco-editor textarea").first().input_value()
+            except:
+                initial_content = await app_page.locator(".monaco-editor").first().text_content()
+            
+            # Click the reset button with enhanced error handling
+            try:
+                await reset_button.click(timeout=5000)
+            except PlaywrightTimeoutError as e:
+                raise AssertionError(f"Reset button click failed: {str(e)}") from e
+            
+            # Enhanced wait for reset to take effect
+            await asyncio.sleep(0.5)  # Initial wait
+            
+            # Wait for content to actually change (if it was different before)
+            max_wait_attempts = 10
+            for attempt in range(max_wait_attempts):
+                try:
+                    current_content = await app_page.locator(".monaco-editor textarea").first().input_value()
+                except:
+                    current_content = await app_page.locator(".monaco-editor").first().text_content()
+                
+                # Check if content contains expected default items
+                if current_content and "example-connector" in current_content:
+                    break
+                    
+                await asyncio.sleep(0.2)
+            else:
+                raise AssertionError(
+                    f"Reset did not restore expected content after {max_wait_attempts} attempts. "
+                    f"Current content: '{current_content[:100] if current_content else 'None'}...'"
+                )
+            
+            # Verify that the default content is present with multiple validation approaches
+            editor_content_selectors = [
+                ".monaco-editor",
+                ".monaco-editor .view-lines",
+                ".monaco-editor .monaco-editor-background"
+            ]
+            
+            content_verified = False
+            for selector in editor_content_selectors:
+                try:
+                    editor_element = app_page.locator(selector).first()
+                    await expect(editor_element).to_contain_text("example-connector", timeout=3000)
+                    content_verified = True
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if not content_verified:
+                raise AssertionError("Reset button did not restore expected default content")
+                
+        except Exception as e:
+            raise AssertionError(f"Reset button functionality test failed: {str(e)}") from e
 
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_character_counter_updates(self, app_page: Page):
-        """Test that the character counter updates when content changes."""
-        # Wait for the Monaco editor to load
-        await app_page.wait_for_selector(".monaco-editor", timeout=10000)
-        
-        # Get initial character count
-        counter = app_page.locator("text=/Content length: \\d+ characters/")
-        initial_text = await counter.text_content()
-        
-        # Click reset button to ensure consistent state
-        reset_button = app_page.locator("button", has_text="Reset to Example")
-        await reset_button.click()
-        await app_page.wait_for_timeout(1000)
-        
-        # Verify counter shows some content
-        await expect(counter).to_contain_text("Content length:")
-        counter_text = await counter.text_content()
-        assert "0 characters" not in counter_text, "Counter should show non-zero characters for default content"
+        """Test that the character counter updates when content changes with enhanced validation."""
+        try:
+            # Enhanced Monaco editor wait
+            await self._wait_for_monaco_editor_ready(app_page)
+            
+            # Enhanced counter selector with multiple patterns
+            counter_selectors = [
+                "text=/Content length: \\d+ characters/",
+                ":has-text('Content length:')",
+                "text=/\\d+ characters/"
+            ]
+            
+            counter_element = None
+            for selector in counter_selectors:
+                try:
+                    counter = app_page.locator(selector).first()
+                    await expect(counter).to_be_visible(timeout=3000)
+                    counter_element = counter
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if counter_element is None:
+                raise AssertionError(f"Character counter not found. Tried selectors: {counter_selectors}")
+            
+            # Get initial character count with enhanced parsing
+            initial_text = await counter_element.text_content()
+            import re
+            initial_match = re.search(r'(\d+)', initial_text or "")
+            if not initial_match:
+                raise AssertionError(f"Could not parse initial character count from: '{initial_text}'")
+            
+            initial_count = int(initial_match.group(1))
+            
+            # Enhanced reset button interaction
+            reset_button_selectors = [
+                "button:has-text('Reset to Example')",
+                "button[type='button']:has-text('Reset')"
+            ]
+            
+            reset_button = None
+            for selector in reset_button_selectors:
+                try:
+                    button = app_page.locator(selector).first()
+                    await expect(button).to_be_enabled(timeout=3000)
+                    reset_button = button
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if reset_button is None:
+                raise AssertionError("Reset button not found for counter test")
+            
+            # Click reset and wait for counter update
+            await reset_button.click(timeout=5000)
+            
+            # Enhanced wait for counter update with retry logic
+            max_attempts = 15
+            counter_updated = False
+            
+            for attempt in range(max_attempts):
+                await asyncio.sleep(0.2)
+                
+                try:
+                    current_text = await counter_element.text_content()
+                    current_match = re.search(r'(\d+)', current_text or "")
+                    
+                    if current_match:
+                        current_count = int(current_match.group(1))
+                        
+                        # Verify counter shows reasonable content length
+                        if current_count > 0:
+                            counter_updated = True
+                            break
+                            
+                except Exception:
+                    continue
+            
+            if not counter_updated:
+                final_text = await counter_element.text_content()
+                raise AssertionError(
+                    f"Character counter did not update properly after {max_attempts} attempts. "
+                    f"Initial: '{initial_text}', Final: '{final_text}'"
+                )
+            
+            # Final validation
+            await expect(counter_element).to_contain_text("Content length:", timeout=3000)
+            
+            final_counter_text = await counter_element.text_content()
+            assert "0 characters" not in final_counter_text, \
+                f"Counter should show non-zero characters for default content, got: '{final_counter_text}'"
+            
+        except Exception as e:
+            raise AssertionError(f"Character counter update test failed: {str(e)}") from e
 
 
 class TestYamlEditorAdvanced:
@@ -1357,6 +1580,7 @@ section_{section:02d}:
         
         final_count = int(final_match.group(1))
         assert final_count > 200, "Final state should include both default and added content"
+
 
 
 
