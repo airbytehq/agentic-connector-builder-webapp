@@ -1,5 +1,7 @@
 # Agentic Connector Builder WebApp
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/airbytehq/agentic-connector-builder-webapp?quickstart=1)
+
 A full-stack agentic connector builder webapp with YAML editing capabilities. This application provides an intuitive interface for building and configuring data connectors using a modern web-based YAML editor.
 
 ## Features
@@ -48,4 +50,3 @@ For detailed development setup, testing instructions, and contribution guideline
 ## License
 
 [Internal, incubating repo.] A fledgling attempt to build a new connector builder webapp: full stack and agentic, secure by default for multi-tenant use cases, and decoupled from Airbyte Platform infra.
-
