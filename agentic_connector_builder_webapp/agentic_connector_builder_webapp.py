@@ -13,8 +13,8 @@ class MonacoYamlSchemaComponent(rx.Component):
     def add_imports(self) -> dict[str, str]:
         """Add necessary imports for monaco-yaml integration."""
         return {
-            "monaco-yaml": "{ configureMonacoYaml }",
-            "monaco-editor": "* as monaco",
+            "monaco-yaml": "configureMonacoYaml",
+            "monaco-editor": "monaco",
         }
     
     def add_hooks(self) -> list[str]:
@@ -403,6 +403,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
