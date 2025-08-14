@@ -77,7 +77,7 @@ def yaml_editor_component() -> rx.Component:
             rx.text(
                 f"Content length: {YamlEditorState.yaml_content.length()} characters",
                 color="gray.600",
-                font_size="sm",
+                size="2",
             ),
             width="100%",
             mb=2,
@@ -147,6 +147,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
