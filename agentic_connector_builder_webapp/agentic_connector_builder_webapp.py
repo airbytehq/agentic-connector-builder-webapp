@@ -166,8 +166,8 @@ streams:
 def yaml_editor_component() -> rx.Component:
     """Create the Monaco YAML editor component with Airbyte schema validation."""
     return rx.vstack(
-        # Add the schema configuration component (hidden but configures monaco-yaml)
-        monaco_yaml_schema(),
+        # Add script to configure monaco-yaml with Airbyte schema validation
+        rx.script(MONACO_YAML_CONFIG_SCRIPT),
         rx.heading("YAML Connector Configuration Editor", size="6", mb=4),
         rx.hstack(
             rx.button(
@@ -326,6 +326,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
