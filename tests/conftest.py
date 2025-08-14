@@ -58,7 +58,7 @@ type: api
 @pytest.fixture
 def yaml_editor_state():
     """Fixture providing a YamlEditorState instance for testing."""
-    from agentic_connector_builder_webapp.app import YamlEditorState
+    from agentic_connector_builder_webapp.agentic_connector_builder_webapp import YamlEditorState
     return YamlEditorState()
 
 
@@ -74,3 +74,4 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow: mark test as slow running"
     )
+

@@ -1,7 +1,7 @@
 """Unit tests for the main Reflex application components."""
 
 import pytest
-from agentic_connector_builder_webapp.app import YamlEditorState, yaml_editor_component, index
+from agentic_connector_builder_webapp.agentic_connector_builder_webapp import YamlEditorState, yaml_editor_component, index
 
 
 class TestYamlEditorState:
@@ -107,13 +107,13 @@ class TestAppConfiguration:
     @pytest.mark.unit
     def test_app_import(self):
         """Test that the app can be imported successfully."""
-        from agentic_connector_builder_webapp.app import app
+        from agentic_connector_builder_webapp.agentic_connector_builder_webapp import app
         assert app is not None
 
     @pytest.mark.unit
     def test_app_has_pages(self):
         """Test that the app has pages configured."""
-        from agentic_connector_builder_webapp.app import app
+        from agentic_connector_builder_webapp.agentic_connector_builder_webapp import app
         # App should have pages configured
         assert hasattr(app, 'pages') or hasattr(app, '_pages')
 
@@ -185,3 +185,6 @@ class TestStateManagement:
         
         yaml_editor_state.update_yaml_content("")
         assert yaml_editor_state.yaml_content == ""
+
+
+
