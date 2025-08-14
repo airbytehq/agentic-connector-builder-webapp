@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.13"
 
 [[package]]
@@ -17,6 +17,11 @@ dev = [
     { name = "pytest" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "playwright" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "playwright", marker = "extra == 'dev'", specifier = ">=1.40.0" },
@@ -25,6 +30,9 @@ requires-dist = [
     { name = "reflex-monaco" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "playwright", specifier = ">=1.54.0" }]
 
 [[package]]
 name = "alembic"

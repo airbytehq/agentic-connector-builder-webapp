@@ -14,3 +14,8 @@ dev = [
     "pytest>=7.0.0",
     "playwright>=1.40.0",
 ]
+
+[dependency-groups]
+dev = [
+    "playwright>=1.54.0",
+]
