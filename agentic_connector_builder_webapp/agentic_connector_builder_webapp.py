@@ -4,58 +4,10 @@ import reflex as rx
 from reflex_monaco import monaco
 
 
-# Monaco YAML configuration script
+# Simplified Monaco YAML configuration script
 MONACO_YAML_CONFIG_SCRIPT = """
-// Configure Monaco Environment for workers
-window.MonacoEnvironment = {
-  getWorker(_id, label) {
-    switch (label) {
-      case 'editorWorkerService':
-        return new Worker(new URL('monaco-editor/esm/vs/editor/editor.worker', import.meta.url));
-      case 'yaml':
-        return new Worker(new URL('monaco-yaml/yaml.worker', import.meta.url));
-      default:
-        throw new Error(`Unknown worker label: ${label}`);
-    }
-  }
-};
-
-// Configure monaco-yaml with Airbyte schema validation
-const configureMonacoYamlSchema = async () => {
-  const airbyte_schema_url = "https://raw.githubusercontent.com/airbytehq/airbyte-python-cdk/bd615ad80b4326174b34f18f3f3bbbdbedb608fb/airbyte_cdk/sources/declarative/generated/declarative_component_schema.json";
-  
-  try {
-    // Wait for monaco-yaml to be available
-    if (typeof window.configureMonacoYaml !== 'undefined' && typeof window.monaco !== 'undefined') {
-      window.configureMonacoYaml(window.monaco, {
-        enableSchemaRequest: true,
-        validate: true,
-        hover: true,
-        completion: true,
-        format: true,
-        schemas: [
-          {
-            uri: airbyte_schema_url,
-            fileMatch: ["**/*.yaml", "**/*.yml", "inmemory://model.yaml"],
-          }
-        ],
-      });
-      console.log('Monaco YAML configured with Airbyte schema validation');
-    } else {
-      console.warn('Monaco YAML dependencies not yet available, retrying...');
-      setTimeout(configureMonacoYamlSchema, 500);
-    }
-  } catch (error) {
-    console.error('Failed to configure monaco-yaml:', error);
-  }
-};
-
-// Initialize configuration when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', configureMonacoYamlSchema);
-} else {
-  configureMonacoYamlSchema();
-}
+console.log('Monaco YAML configuration script loaded');
+// Note: monaco-yaml configuration will be handled by the worker setup in vite.config.js
 """
 
 
@@ -326,6 +278,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
