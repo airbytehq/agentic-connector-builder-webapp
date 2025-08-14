@@ -65,7 +65,7 @@ transformations:
 def yaml_editor_component() -> rx.Component:
     """Create the Monaco YAML editor component."""
     return rx.vstack(
-        rx.heading("YAML Connector Configuration Editor", size="lg", mb=4),
+        rx.heading("YAML Connector Configuration Editor", size="6", mb=4),
         rx.hstack(
             rx.button(
                 "Reset to Example",
@@ -147,5 +147,6 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
