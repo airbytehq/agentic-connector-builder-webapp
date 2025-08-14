@@ -225,6 +225,7 @@ def yaml_editor_component() -> rx.Component:
             width="100%",
             on_change=YamlEditorState.update_yaml_content,
             options={
+                # Basic editor options
                 "minimap": {"enabled": False},
                 "fontSize": 14,
                 "lineNumbers": "on",
@@ -234,6 +235,81 @@ def yaml_editor_component() -> rx.Component:
                 "tabSize": 2,
                 "insertSpaces": True,
                 "wordWrap": "on",
+                
+                # Enhanced schema validation and intellisense options
+                "quickSuggestions": {
+                    "other": True,
+                    "comments": False,
+                    "strings": True
+                },
+                "suggest": {
+                    "insertMode": "replace",
+                    "filterGraceful": True,
+                    "showKeywords": True,
+                    "showSnippets": True,
+                    "showClasses": True,
+                    "showFunctions": True,
+                    "showConstructors": True,
+                    "showFields": True,
+                    "showVariables": True,
+                    "showInterfaces": True,
+                    "showModules": True,
+                    "showProperties": True,
+                    "showEvents": True,
+                    "showOperators": True,
+                    "showUnits": True,
+                    "showValues": True,
+                    "showConstants": True,
+                    "showEnums": True,
+                    "showEnumMembers": True,
+                    "showColors": True,
+                    "showFiles": True,
+                    "showReferences": True,
+                    "showFolders": True,
+                    "showTypeParameters": True,
+                    "showIssues": True,
+                    "showUsers": True
+                },
+                
+                # Hover and validation options
+                "hover": {
+                    "enabled": True,
+                    "delay": 300,
+                    "sticky": True
+                },
+                
+                # Error and warning display
+                "glyphMargin": True,
+                "folding": True,
+                "foldingStrategy": "indentation",
+                "showFoldingControls": "always",
+                
+                # Language-specific options for YAML
+                "bracketPairColorization": {"enabled": True},
+                "guides": {
+                    "bracketPairs": True,
+                    "bracketPairsHorizontal": True,
+                    "highlightActiveBracketPair": True,
+                    "indentation": True,
+                    "highlightActiveIndentation": True
+                },
+                
+                # Validation and diagnostics
+                "semanticHighlighting": {"enabled": True},
+                "occurrencesHighlight": True,
+                "selectionHighlight": True,
+                "codeLens": True,
+                "colorDecorators": True,
+                
+                # Performance and responsiveness
+                "smoothScrolling": True,
+                "cursorSmoothCaretAnimation": True,
+                "renderLineHighlight": "gutter",
+                "renderWhitespace": "boundary",
+                
+                # Accessibility and usability
+                "accessibilitySupport": "auto",
+                "ariaLabel": "YAML Connector Configuration Editor with Airbyte Schema Validation"
             },
         ),
         width="100%",
@@ -282,6 +358,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
