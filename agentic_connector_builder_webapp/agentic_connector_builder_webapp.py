@@ -4,6 +4,66 @@ import reflex as rx
 from reflex_monaco import monaco
 
 
+class MonacoYamlSchemaComponent(rx.Component):
+    """Custom component that configures Monaco YAML with Airbyte schema validation."""
+    
+    library = "react"
+    tag = "div"
+    
+    def add_imports(self) -> dict[str, str]:
+        """Add necessary imports for monaco-yaml integration."""
+        return {
+            "monaco-yaml": "{ configureMonacoYaml }",
+            "monaco-editor": "* as monaco",
+            "react": "{ useEffect }",
+        }
+    
+    def add_hooks(self) -> list[str]:
+        """Add React hooks for monaco-yaml configuration."""
+        airbyte_schema_url = "https://raw.githubusercontent.com/airbytehq/airbyte-python-cdk/bd615ad80b4326174b34f18f3f3bbbdbedb608fb/airbyte_cdk/sources/declarative/generated/declarative_component_schema.json"
+        
+        return [
+            f"""
+            useEffect(() => {{
+                // Configure monaco-yaml with Airbyte schema validation
+                const configureYamlSchema = async () => {{
+                    try {{
+                        if (typeof configureMonacoYaml !== 'undefined' && typeof monaco !== 'undefined') {{
+                            configureMonacoYaml(monaco, {{
+                                enableSchemaRequest: true,
+                                validate: true,
+                                hover: true,
+                                completion: true,
+                                schemas: [
+                                    {{
+                                        uri: "{airbyte_schema_url}",
+                                        fileMatch: ["**/*.yaml", "**/*.yml", "inmemory://model.yaml"],
+                                    }}
+                                ],
+                            }});
+                            console.log('Monaco YAML configured with Airbyte schema validation');
+                        }}
+                    }} catch (error) {{
+                        console.warn('Failed to configure monaco-yaml:', error);
+                    }}
+                }};
+                
+                // Configure after a short delay to ensure Monaco is loaded
+                const timer = setTimeout(configureYamlSchema, 100);
+                return () => clearTimeout(timer);
+            }}, []);
+            """
+        ]
+    
+    def render(self) -> str:
+        """Render the component."""
+        return "<div style={{display: 'none'}}></div>"
+
+
+# Create the schema configuration component
+monaco_yaml_schema = MonacoYamlSchemaComponent.create
+
+
 class YamlEditorState(rx.State):
     """State management for the YAML editor."""
     
@@ -147,6 +207,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
