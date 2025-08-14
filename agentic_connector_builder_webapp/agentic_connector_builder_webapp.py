@@ -113,7 +113,7 @@ def index() -> rx.Component:
         rx.vstack(
             rx.heading(
                 "Agentic Connector Builder",
-                size="xl",
+                size="9",
                 text_align="center",
                 mb=6,
             ),
@@ -147,4 +147,5 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
