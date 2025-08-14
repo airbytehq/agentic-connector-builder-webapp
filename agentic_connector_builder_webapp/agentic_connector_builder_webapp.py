@@ -192,29 +192,52 @@ streams:
         self.yaml_content = content
 
     def reset_yaml_content(self):
-        """Reset YAML content to default example."""
-        self.yaml_content = """# Example YAML configuration
-name: example-connector
-version: "1.0.0"
-description: "A sample connector configuration"
+        """Reset YAML content to default Airbyte connector example."""
+        self.yaml_content = """# yaml-language-server: $schema=https://raw.githubusercontent.com/airbytehq/airbyte-python-cdk/bd615ad80b4326174b34f18f3f3bbbdbedb608fb/airbyte_cdk/sources/declarative/generated/declarative_component_schema.json
+# Airbyte Declarative Connector Configuration
+version: "0.51.42"
+type: DeclarativeSource
+check:
+  type: CheckStream
+  stream_names:
+    - users
 
-source:
-  type: api
-  url: "https://api.example.com"
-  
-destination:
-  type: database
-  connection:
-    host: localhost
-    port: 5432
-    database: example_db
+definitions:
+  base_requester:
+    type: HttpRequester
+    url_base: "https://api.example.com"
+    
+  retriever:
+    type: SimpleRetriever
+    requester:
+      $ref: "#/definitions/base_requester"
+    record_selector:
+      type: RecordSelector
+      extractor:
+        type: DpathExtractor
+        field_path: ["data"]
 
-transformations:
-  - type: field_mapping
-    mappings:
-      id: user_id
-      name: full_name
-      email: email_address
+streams:
+  - type: DeclarativeStream
+    name: users
+    primary_key: ["id"]
+    retriever:
+      $ref: "#/definitions/retriever"
+      requester:
+        $ref: "#/definitions/base_requester"
+        path: "/users"
+    schema_loader:
+      type: InlineSchemaLoader
+      schema:
+        type: object
+        properties:
+          id:
+            type: integer
+          name:
+            type: string
+          email:
+            type: string
+            format: email
 """
 
 
@@ -381,6 +404,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
