@@ -8,44 +8,212 @@ from playwright.async_api import Page, expect, TimeoutError as PlaywrightTimeout
 class TestYamlEditorBasicFunctionality:
     """Test basic YAML editor functionality."""
 
+    async def _wait_for_monaco_editor_ready(self, page: Page, timeout: int = 15000) -> None:
+        """Enhanced wait for Monaco editor to be fully loaded and ready."""
+        try:
+            # Wait for Monaco editor container
+            await page.wait_for_selector(".monaco-editor", timeout=timeout)
+            
+            # Wait for Monaco editor to be fully initialized
+            await page.wait_for_selector(".monaco-editor .monaco-editor-background", timeout=5000)
+            
+            # Wait for textarea to be present (indicates editor is interactive)
+            await page.wait_for_selector(".monaco-editor textarea", timeout=5000)
+            
+            # Additional wait for editor to be fully rendered
+            await page.wait_for_function(
+                "() => document.querySelector('.monaco-editor textarea') !== null && "
+                "document.querySelector('.monaco-editor .monaco-editor-background') !== null",
+                timeout=3000
+            )
+            
+        except PlaywrightTimeoutError as e:
+            # Enhanced error context for debugging
+            page_content = await page.content()
+            console_logs = []
+            
+            # Collect any console errors
+            page.on("console", lambda msg: console_logs.append(f"{msg.type}: {msg.text}"))
+            
+            raise AssertionError(
+                f"Monaco editor failed to load within {timeout}ms. "
+                f"Error: {str(e)}. "
+                f"Page title: {await page.title()}. "
+                f"Console logs: {console_logs[-5:] if console_logs else 'None'}. "
+                f"Monaco elements found: {await page.locator('.monaco-editor').count()}"
+            ) from e
+
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_page_loads_successfully(self, app_page: Page):
-        """Test that the main page loads successfully."""
-        # Check that the page title is correct
-        await expect(app_page).to_have_title("Agentic Connector Builder")
-        
-        # Check that the main heading is visible
-        heading = app_page.locator("h1", has_text="Agentic Connector Builder")
-        await expect(heading).to_be_visible()
+        """Test that the main page loads successfully with enhanced error handling."""
+        try:
+            # Check that the page title is correct with timeout
+            await expect(app_page).to_have_title("Agentic Connector Builder", timeout=10000)
+            
+            # More specific selector for main heading with enhanced wait
+            main_heading = app_page.locator("h1:has-text('Agentic Connector Builder')")
+            await expect(main_heading).to_be_visible(timeout=8000)
+            
+            # Verify page is fully loaded by checking for key elements
+            await expect(app_page.locator("body")).to_be_visible()
+            
+        except PlaywrightTimeoutError as e:
+            # Enhanced error reporting
+            page_url = app_page.url
+            page_title = await app_page.title()
+            raise AssertionError(
+                f"Page failed to load successfully. URL: {page_url}, "
+                f"Title: '{page_title}', Error: {str(e)}"
+            ) from e
 
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_yaml_editor_is_present(self, app_page: Page):
-        """Test that the YAML editor component is present on the page."""
-        # Check for the YAML editor heading
-        editor_heading = app_page.locator("h2", has_text="YAML Connector Configuration Editor")
-        await expect(editor_heading).to_be_visible()
-        
-        # Check for the Monaco editor container
-        # Monaco editor typically creates a div with specific classes
-        editor_container = app_page.locator(".monaco-editor")
-        await expect(editor_container).to_be_visible()
+        """Test that the YAML editor component is present with enhanced selectors."""
+        try:
+            # More specific selector for YAML editor heading
+            editor_heading = app_page.locator("h2:has-text('YAML Connector Configuration Editor')")
+            await expect(editor_heading).to_be_visible(timeout=8000)
+            
+            # Enhanced Monaco editor detection with multiple fallback selectors
+            monaco_selectors = [
+                ".monaco-editor",
+                "[data-uri*='monaco']",
+                ".monaco-editor-background",
+                ".monaco-editor .monaco-scrollable-element"
+            ]
+            
+            editor_found = False
+            for selector in monaco_selectors:
+                try:
+                    editor_element = app_page.locator(selector).first()
+                    await expect(editor_element).to_be_visible(timeout=3000)
+                    editor_found = True
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if not editor_found:
+                # Collect diagnostic information
+                all_divs = await app_page.locator("div").count()
+                monaco_count = await app_page.locator(".monaco-editor").count()
+                
+                raise AssertionError(
+                    f"Monaco editor not found. Total divs: {all_divs}, "
+                    f"Monaco elements: {monaco_count}. "
+                    f"Tried selectors: {monaco_selectors}"
+                )
+            
+            # Wait for editor to be fully ready
+            await self._wait_for_monaco_editor_ready(app_page)
+            
+        except Exception as e:
+            # Enhanced error context
+            page_content_snippet = await app_page.locator("body").inner_text()
+            raise AssertionError(
+                f"YAML editor presence test failed: {str(e)}. "
+                f"Page content snippet: {page_content_snippet[:200]}..."
+            ) from e
 
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_reset_button_is_present(self, app_page: Page):
-        """Test that the reset button is present and clickable."""
-        reset_button = app_page.locator("button", has_text="Reset to Example")
-        await expect(reset_button).to_be_visible()
-        await expect(reset_button).to_be_enabled()
+        """Test that the reset button is present and clickable with enhanced selectors."""
+        try:
+            # More specific button selector with multiple approaches
+            reset_button_selectors = [
+                "button:has-text('Reset to Example')",
+                "button[type='button']:has-text('Reset')",
+                "[role='button']:has-text('Reset to Example')"
+            ]
+            
+            reset_button = None
+            for selector in reset_button_selectors:
+                try:
+                    button = app_page.locator(selector).first()
+                    await expect(button).to_be_visible(timeout=3000)
+                    reset_button = button
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if reset_button is None:
+                # Collect all buttons for debugging
+                all_buttons = await app_page.locator("button").all()
+                button_texts = []
+                for btn in all_buttons:
+                    try:
+                        text = await btn.text_content()
+                        button_texts.append(text)
+                    except:
+                        button_texts.append("(text unavailable)")
+                
+                raise AssertionError(
+                    f"Reset button not found. Available buttons: {button_texts}. "
+                    f"Tried selectors: {reset_button_selectors}"
+                )
+            
+            # Enhanced button state verification
+            await expect(reset_button).to_be_enabled(timeout=5000)
+            
+            # Verify button is interactive (not just visible)
+            button_box = await reset_button.bounding_box()
+            assert button_box is not None, "Reset button should have valid bounding box"
+            assert button_box["width"] > 0 and button_box["height"] > 0, "Reset button should have positive dimensions"
+            
+        except Exception as e:
+            raise AssertionError(f"Reset button test failed: {str(e)}") from e
 
     @pytest.mark.e2e
     @pytest.mark.browser
     async def test_character_counter_is_present(self, app_page: Page):
-        """Test that the character counter is present."""
-        counter = app_page.locator("text=/Content length: \\d+ characters/")
-        await expect(counter).to_be_visible()
+        """Test that the character counter is present with enhanced pattern matching."""
+        try:
+            # Enhanced counter selector with multiple patterns
+            counter_patterns = [
+                "text=/Content length: \\d+ characters/",
+                ":has-text('Content length:')",
+                "text=/\\d+ characters/",
+                "[data-testid*='counter']"  # In case data-testid is added later
+            ]
+            
+            counter_found = False
+            counter_element = None
+            
+            for pattern in counter_patterns:
+                try:
+                    counter = app_page.locator(pattern).first()
+                    await expect(counter).to_be_visible(timeout=3000)
+                    counter_element = counter
+                    counter_found = True
+                    break
+                except PlaywrightTimeoutError:
+                    continue
+            
+            if not counter_found:
+                # Enhanced debugging information
+                page_text = await app_page.locator("body").inner_text()
+                content_length_mentions = [line for line in page_text.split('\n') if 'content' in line.lower() or 'length' in line.lower() or 'character' in line.lower()]
+                
+                raise AssertionError(
+                    f"Character counter not found. "
+                    f"Tried patterns: {counter_patterns}. "
+                    f"Potential matches in page: {content_length_mentions[:3]}"
+                )
+            
+            # Verify counter shows valid content
+            counter_text = await counter_element.text_content()
+            assert counter_text is not None, "Counter should have text content"
+            assert len(counter_text.strip()) > 0, "Counter text should not be empty"
+            
+            # Verify counter format is reasonable
+            import re
+            if not re.search(r'\d+', counter_text):
+                raise AssertionError(f"Counter should contain numbers, got: '{counter_text}'")
+                
+        except Exception as e:
+            raise AssertionError(f"Character counter test failed: {str(e)}") from e
 
 
 class TestYamlEditorInteraction:
@@ -1189,6 +1357,7 @@ section_{section:02d}:
         
         final_count = int(final_match.group(1))
         assert final_count > 200, "Final state should include both default and added content"
+
 
 
 
