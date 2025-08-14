@@ -5,8 +5,8 @@ description = "A full-stack agentic connector builder webapp with YAML editing c
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "reflex>=0.4.0",
-    "reflex-monaco>=0.1.0",
+    "reflex",
+    "reflex-monaco",
 ]
 
 [project.optional-dependencies]
@@ -14,4 +14,3 @@ dev = [
     "pytest>=7.0.0",
     "playwright>=1.40.0",
 ]
-

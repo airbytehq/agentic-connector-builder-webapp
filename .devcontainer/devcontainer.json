@@ -1,0 +1,13 @@
+{
+  "forwardPorts": [3000],
+  "postCreateCommand": "pipx install uv && uv sync",
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "ms-python.python",
+        "ms-playwright.playwright"
+      ]
+    }
+  }
+}
