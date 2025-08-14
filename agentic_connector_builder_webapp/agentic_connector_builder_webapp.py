@@ -19,37 +19,110 @@ class MonacoYamlSchemaComponent(rx.Component):
         }
     
     def add_hooks(self) -> list[str]:
-        """Add React hooks for monaco-yaml configuration."""
+        """Add React hooks for monaco-yaml configuration with enhanced schema validation."""
         airbyte_schema_url = "https://raw.githubusercontent.com/airbytehq/airbyte-python-cdk/bd615ad80b4326174b34f18f3f3bbbdbedb608fb/airbyte_cdk/sources/declarative/generated/declarative_component_schema.json"
         
         return [
             f"""
             useEffect(() => {{
-                // Configure monaco-yaml with Airbyte schema validation
+                // Configure monaco-yaml with enhanced Airbyte schema validation
                 const configureYamlSchema = async () => {{
                     try {{
                         if (typeof configureMonacoYaml !== 'undefined' && typeof monaco !== 'undefined') {{
+                            // Enhanced configuration with comprehensive schema validation options
                             configureMonacoYaml(monaco, {{
                                 enableSchemaRequest: true,
                                 validate: true,
                                 hover: true,
                                 completion: true,
+                                format: true,
+                                isKubernetes: false,
+                                // Schema configuration with CORS handling
                                 schemas: [
                                     {{
                                         uri: "{airbyte_schema_url}",
-                                        fileMatch: ["**/*.yaml", "**/*.yml", "inmemory://model.yaml"],
+                                        fileMatch: ["**/*.yaml", "**/*.yml", "inmemory://model.yaml", "file:///connector.yaml"],
+                                        schema: {{
+                                            $ref: "{airbyte_schema_url}"
+                                        }}
                                     }}
                                 ],
+                                // Enhanced validation options
+                                yamlVersion: "1.2",
+                                customTags: [],
+                                // Error handling for schema validation failures
+                                onSchemaRequestError: (uri, error) => {{
+                                    console.error(`Failed to fetch schema from ${{uri}}:`, error);
+                                    // Provide user feedback for schema fetch failures
+                                    if (error.message.includes('CORS')) {{
+                                        console.warn('CORS error detected. Schema validation may be limited.');
+                                    }} else if (error.message.includes('404')) {{
+                                        console.warn('Schema not found. Using basic YAML validation.');
+                                    }} else {{
+                                        console.warn('Network error fetching schema. Check connection.');
+                                    }}
+                                }},
+                                // Additional diagnostic options
+                                diagnosticsOptions: {{
+                                    enableSchemaRequest: true,
+                                    hover: true,
+                                    completion: true,
+                                    validate: true,
+                                    format: true
+                                }}
                             }});
-                            console.log('Monaco YAML configured with Airbyte schema validation');
+                            
+                            console.log('Monaco YAML configured with enhanced Airbyte schema validation');
+                            console.log('Schema URL:', "{airbyte_schema_url}");
+                            
+                            // Test schema availability
+                            fetch("{airbyte_schema_url}", {{ method: 'HEAD' }})
+                                .then(response => {{
+                                    if (response.ok) {{
+                                        console.log('Airbyte schema is accessible');
+                                    }} else {{
+                                        console.warn('Airbyte schema returned status:', response.status);
+                                    }}
+                                }})
+                                .catch(error => {{
+                                    console.warn('Schema accessibility test failed:', error.message);
+                                    if (error.message.includes('CORS')) {{
+                                        console.info('CORS policy may prevent direct schema access, but monaco-yaml worker should handle it');
+                                    }}
+                                }});
+                        }} else {{
+                            console.error('Monaco YAML dependencies not available');
                         }}
                     }} catch (error) {{
-                        console.warn('Failed to configure monaco-yaml:', error);
+                        console.error('Failed to configure monaco-yaml:', error);
+                        // Provide detailed error information
+                        if (error.message.includes('configureMonacoYaml')) {{
+                            console.error('monaco-yaml package may not be properly installed or imported');
+                        }} else if (error.message.includes('monaco')) {{
+                            console.error('Monaco editor may not be properly initialized');
+                        }}
                     }}
                 }};
                 
-                // Configure after a short delay to ensure Monaco is loaded
-                const timer = setTimeout(configureYamlSchema, 100);
+                // Configure with multiple retry attempts and delays
+                let retryCount = 0;
+                const maxRetries = 5;
+                const retryDelay = 200;
+                
+                const configureWithRetry = () => {{
+                    if (retryCount < maxRetries) {{
+                        configureYamlSchema().catch(() => {{
+                            retryCount++;
+                            console.log(`Retrying monaco-yaml configuration (attempt ${{retryCount}}/${{maxRetries}})`);
+                            setTimeout(configureWithRetry, retryDelay * retryCount);
+                        }});
+                    }} else {{
+                        console.warn('Failed to configure monaco-yaml after maximum retries');
+                    }}
+                }};
+                
+                // Initial configuration attempt
+                const timer = setTimeout(configureWithRetry, 100);
                 return () => clearTimeout(timer);
             }}, []);
             """
@@ -209,6 +282,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
