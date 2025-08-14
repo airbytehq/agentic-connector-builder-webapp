@@ -4,11 +4,47 @@ import reflex as rx
 from reflex_monaco import monaco
 
 
-# Simplified Monaco YAML configuration script
-MONACO_YAML_CONFIG_SCRIPT = """
-console.log('Monaco YAML configuration script loaded');
-// Note: monaco-yaml configuration will be handled by the worker setup in vite.config.js
-"""
+def configure_monaco_yaml_head() -> rx.Component:
+    """Add head scripts to configure monaco-yaml with Airbyte schema validation."""
+    return rx.fragment(
+        rx.script(src="https://unpkg.com/monaco-yaml@5.2.2/index.js"),
+        rx.script("""
+            // Configure Monaco Environment for workers
+            window.MonacoEnvironment = {
+                getWorker: function(workerId, label) {
+                    switch (label) {
+                        case 'editorWorkerService':
+                            return new Worker('/monaco-editor/esm/vs/editor/editor.worker.js');
+                        case 'yaml':
+                            return new Worker('/monaco-yaml/yaml.worker.js');
+                        default:
+                            throw new Error('Unknown worker ' + label);
+                    }
+                }
+            };
+            
+            // Configure monaco-yaml when available
+            window.addEventListener('load', function() {
+                if (typeof window.configureMonacoYaml !== 'undefined') {
+                    try {
+                        window.configureMonacoYaml(window.monaco, {
+                            enableSchemaRequest: true,
+                            validate: true,
+                            hover: true,
+                            completion: true,
+                            schemas: [{
+                                uri: 'https://raw.githubusercontent.com/airbytehq/airbyte-python-cdk/bd615ad80b4326174b34f18f3f3bbbdbedb608fb/airbyte_cdk/sources/declarative/generated/declarative_component_schema.json',
+                                fileMatch: ['**/*.yaml', '**/*.yml']
+                            }]
+                        });
+                        console.log('Monaco YAML configured with Airbyte schema validation');
+                    } catch (error) {
+                        console.warn('Failed to configure monaco-yaml:', error);
+                    }
+                }
+            });
+        """)
+    )
 
 
 class YamlEditorState(rx.State):
@@ -276,6 +312,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
