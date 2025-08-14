@@ -1,7 +1,7 @@
 """Unit tests for the main Reflex application components."""
 
 import pytest
-from agentic_connector_builder_webapp.app import YamlEditorState, yaml_editor_component, index
+from agentic_connector_builder_webapp.agentic_connector_builder_webapp import YamlEditorState, yaml_editor_component, index
 
 
 class TestYamlEditorState:
@@ -185,3 +185,4 @@ class TestStateManagement:
         
         yaml_editor_state.update_yaml_content("")
         assert yaml_editor_state.yaml_content == ""
+
