@@ -103,7 +103,7 @@ def yaml_editor_component() -> rx.Component:
         ),
         width="100%",
         height="100%",
-        spacing=4,
+        spacing="4",
     )
 
 
@@ -147,6 +147,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
