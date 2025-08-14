@@ -307,11 +307,15 @@ app = rx.App(
         has_background=True,
         radius="medium",
         accent_color="blue",
-    )
+    ),
+    head_components=[
+        configure_monaco_yaml_head(),
+    ]
 )
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
