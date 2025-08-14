@@ -4,70 +4,6 @@ import reflex as rx
 from reflex_monaco import monaco
 
 
-class MonacoYamlEditor(rx.Component):
-    """Custom Monaco YAML editor with schema validation support."""
-    
-    library = "@monaco-editor/react@4.7.0"
-    tag = "MonacoEditor"
-    is_default = True
-    
-    # Basic Monaco editor properties
-    value: rx.Var[str]
-    language: rx.Var[str] = "yaml"
-    theme: rx.Var[str] = "vs-dark"
-    height: rx.Var[str] = "500px"
-    width: rx.Var[str] = "100%"
-    
-    # Event handlers
-    on_change: rx.EventHandler[rx.event.passthrough_event_spec(str)]
-    on_validate: rx.EventHandler[rx.event.passthrough_event_spec(str)]
-    
-    # Monaco editor options
-    options: rx.Var[dict] = {}
-    
-    def add_imports(self) -> dict[str, str]:
-        """Add necessary imports for monaco-yaml integration."""
-        return {
-            "monaco-yaml": "configureMonacoYaml",
-            "monaco-editor": "* as monaco",
-        }
-    
-    def add_hooks(self) -> list[str]:
-        """Add React hooks for monaco-yaml configuration."""
-        airbyte_schema_url = "https://raw.githubusercontent.com/airbytehq/airbyte-python-cdk/bd615ad80b4326174b34f18f3f3bbbdbedb608fb/airbyte_cdk/sources/declarative/generated/declarative_component_schema.json"
-        
-        return [
-            f"""
-            React.useEffect(() => {{
-                // Configure monaco-yaml with Airbyte schema validation
-                if (typeof configureMonacoYaml !== 'undefined' && typeof monaco !== 'undefined') {{
-                    try {{
-                        configureMonacoYaml(monaco, {{
-                            enableSchemaRequest: true,
-                            validate: true,
-                            hover: true,
-                            completion: true,
-                            schemas: [
-                                {{
-                                    uri: "{airbyte_schema_url}",
-                                    fileMatch: ["**/*.yaml", "**/*.yml", "inmemory://model.yaml"],
-                                }}
-                            ],
-                        }});
-                        console.log('Monaco YAML configured with Airbyte schema validation');
-                    }} catch (error) {{
-                        console.warn('Failed to configure monaco-yaml:', error);
-                    }}
-                }}
-            }}, []);
-            """
-        ]
-
-
-# Create the custom Monaco YAML editor component
-monaco_yaml_editor = MonacoYamlEditor.create
-
-
 class YamlEditorState(rx.State):
     """State management for the YAML editor."""
     
@@ -211,6 +147,7 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
+
 
 
 
