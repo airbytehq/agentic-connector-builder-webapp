@@ -1,8 +1,9 @@
 """Pytest configuration and fixtures for agentic-connector-builder-webapp tests."""
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 # Add src directory to Python path for imports
 src_path = Path(__file__).parent.parent / "src"
@@ -20,7 +21,6 @@ description: "A test connector configuration"
 source:
   type: api
   url: "https://api.test.com"
-  
 destination:
   type: database
   connection:
@@ -58,20 +58,16 @@ type: api
 @pytest.fixture
 def yaml_editor_state():
     """Fixture providing a YamlEditorState instance for testing."""
-    from agentic_connector_builder_webapp.agentic_connector_builder_webapp import YamlEditorState
+    from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
+        YamlEditorState,
+    )
+
     return YamlEditorState()
 
 
 # Configure pytest settings
 def pytest_configure(config):
     """Configure pytest with custom settings."""
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
-
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")

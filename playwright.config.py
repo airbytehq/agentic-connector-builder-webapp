@@ -1,6 +1,5 @@
 """Playwright configuration for end-to-end testing."""
 
-from playwright.sync_api import Playwright
 import os
 
 
@@ -25,19 +24,13 @@ PLAYWRIGHT_CONFIG = {
     "headless": True,
     "viewport": {"width": 1280, "height": 720},
     "ignore_https_errors": True,
-    "video": {
-        "mode": "retain-on-failure",
-        "size": {"width": 1280, "height": 720}
-    },
-    "screenshot": {
-        "mode": "only-on-failure",
-        "full_page": True
-    },
+    "video": {"mode": "retain-on-failure", "size": {"width": 1280, "height": 720}},
+    "screenshot": {"mode": "only-on-failure", "full_page": True},
     "trace": {
         "mode": "retain-on-failure",
         "screenshots": True,
         "snapshots": True,
-        "sources": True
+        "sources": True,
     },
     "test_dir": "tests/e2e",
     "timeout": 30000,  # 30 seconds
@@ -51,7 +44,7 @@ PLAYWRIGHT_CONFIG = {
         ["html", {"open": "never", "outputFolder": "test-results/html-report"}],
         ["json", {"outputFile": "test-results/results.json"}],
         ["junit", {"outputFile": "test-results/junit.xml"}],
-        ["line"]
+        ["line"],
     ],
     "output_dir": "test-results",
     "preserve_output": "failures-only",
@@ -76,18 +69,9 @@ PLAYWRIGHT_CONFIG = {
         "screenshot": "only-on-failure",
     },
     "projects": [
-        {
-            "name": "chromium",
-            "use": {"browser_name": "chromium"}
-        },
-        {
-            "name": "firefox",
-            "use": {"browser_name": "firefox"}
-        },
-        {
-            "name": "webkit",
-            "use": {"browser_name": "webkit"}
-        }
+        {"name": "chromium", "use": {"browser_name": "chromium"}},
+        {"name": "firefox", "use": {"browser_name": "firefox"}},
+        {"name": "webkit", "use": {"browser_name": "webkit"}},
     ],
     "web_server": {
         "command": "uv run reflex run --env dev",
@@ -96,11 +80,8 @@ PLAYWRIGHT_CONFIG = {
         "reuseExistingServer": True,
         "stdout": "pipe",
         "stderr": "pipe",
-        "env": {
-            "NODE_ENV": "test",
-            "REFLEX_ENV": "test"
-        }
-    }
+        "env": {"NODE_ENV": "test", "REFLEX_ENV": "test"},
+    },
 }
 
 
@@ -113,7 +94,7 @@ def get_browser_config(browser_name: str = "chromium") -> dict:
         "viewport": {"width": 1280, "height": 720},
         "ignore_https_errors": True,
     }
-    
+
     browser_configs = {
         "chromium": {
             **base_config,
@@ -121,58 +102,55 @@ def get_browser_config(browser_name: str = "chromium") -> dict:
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-web-security",
-                "--disable-features=VizDisplayCompositor"
-            ]
+                "--disable-features=VizDisplayCompositor",
+            ],
         },
         "firefox": {
             **base_config,
             "firefox_user_prefs": {
                 "security.tls.insecure_fallback_hosts": "localhost",
-                "network.stricttransportsecurity.preloadlist": False
-            }
+                "network.stricttransportsecurity.preloadlist": False,
+            },
         },
-        "webkit": {
-            **base_config,
-            "ignore_default_args": ["--enable-automation"]
-        }
+        "webkit": {**base_config, "ignore_default_args": ["--enable-automation"]},
     }
-    
+
     return browser_configs.get(browser_name, browser_configs["chromium"])
 
 
 def get_test_environment_config() -> dict:
     """Get test environment specific configuration."""
     env = os.getenv("TEST_ENV", "local")
-    
+
     configs = {
         "local": {
             "base_url": "http://localhost:3000",
             "timeout": 30000,
             "workers": 1,
-            "retry": 2
+            "retry": 2,
         },
         "ci": {
             "base_url": "http://localhost:3000",
             "timeout": 60000,
             "workers": 2,
             "retry": 3,
-            "headless": True
+            "headless": True,
         },
         "staging": {
             "base_url": os.getenv("STAGING_URL", "https://staging.example.com"),
             "timeout": 45000,
             "workers": 2,
-            "retry": 1
-        }
+            "retry": 1,
+        },
     }
-    
+
     return configs.get(env, configs["local"])
 
 
 # Export main configuration
 __all__ = [
     "PLAYWRIGHT_CONFIG",
-    "pytest_playwright_config", 
+    "pytest_playwright_config",
     "get_browser_config",
-    "get_test_environment_config"
+    "get_test_environment_config",
 ]

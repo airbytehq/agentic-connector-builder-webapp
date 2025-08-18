@@ -1,9 +1,10 @@
 """Playwright configuration and fixtures for end-to-end tests."""
 
-import pytest
 import asyncio
-from playwright.async_api import async_playwright, Browser, BrowserContext, Page
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
+import pytest
+from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
 
 @pytest.fixture(scope="session")
@@ -19,8 +20,7 @@ async def browser() -> AsyncGenerator[Browser, None]:
     """Create a browser instance for the test session."""
     async with async_playwright() as p:
         browser = await p.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-dev-shm-usage"]
+            headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
         yield browser
         await browser.close()
@@ -70,11 +70,9 @@ description: "End-to-end test connector"
 source:
   type: file
   path: "/data/input.json"
-  
 destination:
   type: api
   endpoint: "https://api.test.com/data"
-  
 transformations:
   - type: json_to_yaml
   - type: validation
@@ -158,12 +156,8 @@ monitoring:
 # Configure pytest for async tests
 def pytest_configure(config):
     """Configure pytest for Playwright e2e tests."""
-    config.addinivalue_line(
-        "markers", "e2e: mark test as an end-to-end test"
-    )
-    config.addinivalue_line(
-        "markers", "slow_e2e: mark test as a slow end-to-end test"
-    )
+    config.addinivalue_line("markers", "e2e: mark test as an end-to-end test")
+    config.addinivalue_line("markers", "slow_e2e: mark test as a slow end-to-end test")
     config.addinivalue_line(
         "markers", "browser: mark test as requiring browser automation"
     )

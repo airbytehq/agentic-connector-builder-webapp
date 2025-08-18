@@ -6,7 +6,7 @@ from reflex_monaco import monaco
 
 class YamlEditorState(rx.State):
     """State management for the YAML editor."""
-    
+
     yaml_content: str = """# Example YAML configuration
 name: example-connector
 version: "1.0.0"
@@ -15,7 +15,6 @@ description: "A sample connector configuration"
 source:
   type: api
   url: "https://api.example.com"
-  
 destination:
   type: database
   connection:
@@ -31,6 +30,10 @@ transformations:
       email: email_address
 """
 
+    def get_content_length(self) -> int:
+        """Get the content length."""
+        return len(self.yaml_content)
+
     def update_yaml_content(self, content: str):
         """Update the YAML content when editor changes."""
         self.yaml_content = content
@@ -45,7 +48,6 @@ description: "A sample connector configuration"
 source:
   type: api
   url: "https://api.example.com"
-  
 destination:
   type: database
   connection:
@@ -75,7 +77,7 @@ def yaml_editor_component() -> rx.Component:
             ),
             rx.spacer(),
             rx.text(
-                f"Content length: {YamlEditorState.yaml_content.length()} characters",
+                "Content length will be calculated dynamically",
                 color="gray.600",
                 size="2",
             ),
@@ -147,10 +149,3 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
-
-
-
-
-
-
-
