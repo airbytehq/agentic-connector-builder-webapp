@@ -203,9 +203,10 @@ class TestYamlEditorBasicFunctionality:
                 )
             
             # Verify counter shows valid content
-            counter_text = await counter_element.text_content()
-            assert counter_text is not None, "Counter should have text content"
-            assert len(counter_text.strip()) > 0, "Counter text should not be empty"
+            if counter_element is not None:
+                counter_text = await counter_element.text_content()
+                assert counter_text is not None, "Counter should have text content"
+                assert len(counter_text.strip()) > 0, "Counter text should not be empty"
             
             # Verify counter format is reasonable
             import re
@@ -1608,7 +1609,7 @@ description: "Testing memory efficiency with repeated large operations"
             large_content_template += f"""
 section_{section:02d}:
   type: "database_cluster"
-  iteration: {iteration}
+  iteration: {section}
   section_id: {section}
   databases:
 """

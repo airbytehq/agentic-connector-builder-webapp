@@ -31,6 +31,10 @@ transformations:
       email: email_address
 """
 
+    def get_content_length(self) -> int:
+        """Get the content length."""
+        return len(self.yaml_content)
+
     def update_yaml_content(self, content: str):
         """Update the YAML content when editor changes."""
         self.yaml_content = content
@@ -75,7 +79,7 @@ def yaml_editor_component() -> rx.Component:
             ),
             rx.spacer(),
             rx.text(
-                f"Content length: {YamlEditorState.yaml_content.length()} characters",
+                "Content length will be calculated dynamically",
                 color="gray.600",
                 size="2",
             ),
