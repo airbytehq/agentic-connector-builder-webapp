@@ -6,7 +6,7 @@ from reflex_monaco import monaco
 
 class YamlEditorState(rx.State):
     """State management for the YAML editor."""
-    
+
     yaml_content: str = """# Example YAML configuration
 name: example-connector
 version: "1.0.0"
@@ -15,7 +15,6 @@ description: "A sample connector configuration"
 source:
   type: api
   url: "https://api.example.com"
-  
 destination:
   type: database
   connection:
@@ -49,7 +48,6 @@ description: "A sample connector configuration"
 source:
   type: api
   url: "https://api.example.com"
-  
 destination:
   type: database
   connection:
@@ -151,10 +149,3 @@ app = rx.App(
 
 # Add the main page
 app.add_page(index, route="/", title="Agentic Connector Builder")
-
-
-
-
-
-
-
