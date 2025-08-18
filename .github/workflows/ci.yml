@@ -83,10 +83,12 @@ jobs:
     
     - name: Check build artifacts
       run: |
-        if [ -d ".web/_static/compiled" ]; then
-          echo "✅ Build successful - compiled assets found"
-          ls -la .web/_static/compiled/
+        if [ -f "frontend.zip" ]; then
+          echo "✅ Build successful - frontend.zip created"
+          ls -la frontend.zip
+          unzip -l frontend.zip | head -20
         else
-          echo "❌ Build failed - no compiled assets found"
+          echo "❌ Build failed - no frontend.zip found"
+          ls -la
           exit 1
         fi
