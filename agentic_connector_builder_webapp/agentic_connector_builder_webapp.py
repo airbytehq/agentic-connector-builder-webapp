@@ -7,26 +7,27 @@ from reflex_monaco.monaco import MonacoEditor
 
 
 class YamlValidationMonaco(MonacoEditor):
-    """Monaco Editor with YAML syntax validation using monaco-yaml."""
+    """Monaco Editor with Python-based YAML syntax validation."""
+    
+    validation_errors: rx.Var[list]
     
     def add_imports(self):
-        """Add required imports for YAML validation."""
+        """Add minimal imports for Monaco YAML language support."""
         return {
             "monaco-yaml": "configureMonacoYaml",
-            "js-yaml": "load",
-            "react": ["useEffect", "useCallback"],
+            "react": ["useEffect"],
             "@monaco-editor/react": "useMonaco",
         }
     
     def add_hooks(self):
-        """Add YAML validation hooks following airbyte-platform pattern."""
+        """Add minimal Monaco configuration hooks."""
         return [
             """
             const monaco = useMonaco();
             
             useEffect(() => {
                 if (monaco) {
-                    // Configure monaco-yaml for YAML validation
+                    // Configure monaco-yaml for basic YAML language support
                     configureMonacoYaml(monaco, {
                         enableSchemaRequest: false,
                         hover: true,
@@ -34,63 +35,23 @@ class YamlValidationMonaco(MonacoEditor):
                         validate: true,
                         format: true,
                     });
-                }
-            }, [monaco]);
-            """,
-            """
-            const validateYamlSyntax = useCallback((editor, yamlValue) => {
-                if (!monaco || !editor || !yamlValue) return;
-                
-                const model = editor.getModel();
-                if (!model) return;
-                
-                const errOwner = "yaml";
-                
-                try {
-                    load(yamlValue);
-                    // Clear error markers on valid YAML
-                    monaco.editor.setModelMarkers(model, errOwner, []);
-                } catch (err) {
-                    // Set error markers for invalid YAML
-                    const mark = err.mark;
-                    if (mark) {
-                        monaco.editor.setModelMarkers(model, errOwner, [{
-                            startLineNumber: mark.line + 1,
-                            startColumn: mark.column + 1,
-                            endLineNumber: mark.line + 1,
-                            endColumn: mark.column + 2,
-                            message: err.message,
-                            severity: monaco.MarkerSeverity.Error,
-                        }]);
-                    }
-                }
-            }, [monaco]);
-            
-            // Trigger validation when editor content changes
-            useEffect(() => {
-                if (monaco && validateYamlSyntax) {
+                    
+                    // Apply validation errors from Python state
                     const editor = monaco.editor.getEditors()[0];
-                    if (editor) {
+                    if (editor && props.validation_errors) {
                         const model = editor.getModel();
                         if (model) {
-                            validateYamlSyntax(editor, model.getValue());
-                            
-                            // Listen for content changes
-                            const disposable = model.onDidChangeContent(() => {
-                                validateYamlSyntax(editor, model.getValue());
-                            });
-                            
-                            return () => disposable.dispose();
+                            monaco.editor.setModelMarkers(model, "yaml", props.validation_errors);
                         }
                     }
                 }
-            }, [monaco, validateYamlSyntax]);
+            }, [monaco, props.validation_errors]);
             """
         ]
 
 
 class YamlEditorState(rx.State):
-    """State management for the YAML editor."""
+    """State management for the YAML editor with Python-based validation."""
 
     yaml_content: str = """# Example YAML configuration
 name: example-connector
@@ -114,14 +75,43 @@ transformations:
       name: full_name
       email: email_address
 """
+    
+    validation_errors: list = []
 
     def get_content_length(self) -> int:
         """Get the content length."""
         return len(self.yaml_content)
 
+    def validate_yaml_syntax(self, content: str) -> list:
+        """Validate YAML syntax using Python and return Monaco-compatible error markers."""
+        try:
+            yaml.safe_load(content)
+            return []  # No errors
+        except yaml.YAMLError as e:
+            line = getattr(e, 'problem_mark', None)
+            if line:
+                return [{
+                    "startLineNumber": line.line + 1,
+                    "startColumn": line.column + 1,
+                    "endLineNumber": line.line + 1,
+                    "endColumn": line.column + 2,
+                    "message": str(e),
+                    "severity": 8,  # Monaco MarkerSeverity.Error
+                }]
+            else:
+                return [{
+                    "startLineNumber": 1,
+                    "startColumn": 1,
+                    "endLineNumber": 1,
+                    "endColumn": 2,
+                    "message": str(e),
+                    "severity": 8,
+                }]
+
     def update_yaml_content(self, content: str):
-        """Update the YAML content when editor changes."""
+        """Update the YAML content and validate syntax."""
         self.yaml_content = content
+        self.validation_errors = self.validate_yaml_syntax(content)
 
     def reset_yaml_content(self):
         """Reset YAML content to default example."""
@@ -147,6 +137,7 @@ transformations:
       name: full_name
       email: email_address
 """
+        self.validation_errors = []
 
 
 def yaml_editor_component() -> rx.Component:
@@ -171,6 +162,7 @@ def yaml_editor_component() -> rx.Component:
         ),
         YamlValidationMonaco.create(
             value=YamlEditorState.yaml_content,
+            validation_errors=YamlEditorState.validation_errors,
             language="yaml",
             theme="vs-dark",
             height="500px",
