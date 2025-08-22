@@ -1,7 +1,92 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
 import reflex as rx
+import yaml
 from reflex_monaco import monaco
+from reflex_monaco.monaco import MonacoEditor
+
+
+class YamlValidationMonaco(MonacoEditor):
+    """Monaco Editor with YAML syntax validation using monaco-yaml."""
+    
+    def add_imports(self):
+        """Add required imports for YAML validation."""
+        return {
+            "monaco-yaml": "configureMonacoYaml",
+            "js-yaml": "load",
+            "react": ["useEffect", "useCallback"],
+            "@monaco-editor/react": "useMonaco",
+        }
+    
+    def add_hooks(self):
+        """Add YAML validation hooks following airbyte-platform pattern."""
+        return [
+            """
+            const monaco = useMonaco();
+            
+            useEffect(() => {
+                if (monaco) {
+                    // Configure monaco-yaml for YAML validation
+                    configureMonacoYaml(monaco, {
+                        enableSchemaRequest: false,
+                        hover: true,
+                        completion: true,
+                        validate: true,
+                        format: true,
+                    });
+                }
+            }, [monaco]);
+            """,
+            """
+            const validateYamlSyntax = useCallback((editor, yamlValue) => {
+                if (!monaco || !editor || !yamlValue) return;
+                
+                const model = editor.getModel();
+                if (!model) return;
+                
+                const errOwner = "yaml";
+                
+                try {
+                    load(yamlValue);
+                    // Clear error markers on valid YAML
+                    monaco.editor.setModelMarkers(model, errOwner, []);
+                } catch (err) {
+                    // Set error markers for invalid YAML
+                    const mark = err.mark;
+                    if (mark) {
+                        monaco.editor.setModelMarkers(model, errOwner, [{
+                            startLineNumber: mark.line + 1,
+                            startColumn: mark.column + 1,
+                            endLineNumber: mark.line + 1,
+                            endColumn: mark.column + 2,
+                            message: err.message,
+                            severity: monaco.MarkerSeverity.Error,
+                        }]);
+                    }
+                }
+            }, [monaco]);
+            
+            // Trigger validation when editor content changes
+            useEffect(() => {
+                if (monaco && validateYamlSyntax) {
+                    const editor = monaco.editor.getEditors()[0];
+                    if (editor) {
+                        const model = editor.getModel();
+                        if (model) {
+                            validateYamlSyntax(editor, model.getValue());
+                            
+                            // Listen for content changes
+                            const disposable = model.onDidChangeContent(() => {
+                                validateYamlSyntax(editor, model.getValue());
+                            });
+                            
+                            return () => disposable.dispose();
+                        }
+                    }
+                }
+            }, [monaco, validateYamlSyntax]);
+            """
+        ]
 
 
 class YamlEditorState(rx.State):
@@ -84,7 +169,7 @@ def yaml_editor_component() -> rx.Component:
             width="100%",
             mb=2,
         ),
-        monaco(
+        YamlValidationMonaco.create(
             value=YamlEditorState.yaml_content,
             language="yaml",
             theme="vs-dark",
