@@ -35,17 +35,8 @@ class YamlValidationMonaco(MonacoEditor):
                         validate: true,
                         format: true,
                     });
-                    
-                    // Apply validation errors from Python state
-                    const editor = monaco.editor.getEditors()[0];
-                    if (editor && validation_errors) {
-                        const model = editor.getModel();
-                        if (model) {
-                            monaco.editor.setModelMarkers(model, "yaml", validation_errors);
-                        }
-                    }
                 }
-            }, [monaco, validation_errors]);
+            }, [monaco]);
             """
         ]
 
