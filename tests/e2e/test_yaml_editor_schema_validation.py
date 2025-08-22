@@ -13,10 +13,14 @@ from playwright.async_api import Page, expect
 class TestYamlEditorSchemaIntegration:
     """Test JSON schema integration features that are currently missing."""
 
-    async def _wait_for_monaco_editor_ready(self, page: Page, timeout: int = 15000) -> None:
+    async def _wait_for_monaco_editor_ready(
+        self, page: Page, timeout: int = 15000
+    ) -> None:
         """Wait for Monaco editor to be fully loaded and ready."""
         await page.wait_for_selector(".monaco-editor", timeout=timeout)
-        await page.wait_for_selector(".monaco-editor .monaco-editor-background", timeout=5000)
+        await page.wait_for_selector(
+            ".monaco-editor .monaco-editor-background", timeout=5000
+        )
         await page.wait_for_selector(".monaco-editor textarea", timeout=5000)
 
     @pytest.mark.e2e
@@ -131,4 +135,6 @@ source:
         problems_panel = app_page.locator(problems_panel_selector)
 
         await expect(problems_panel).to_be_visible(timeout=3000)
-        await expect(problems_panel).to_contain_text("validation error", case_sensitive=False)
+        await expect(problems_panel).to_contain_text(
+            "validation error", case_sensitive=False
+        )
