@@ -1,92 +1,91 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
 import reflex as rx
-import yaml
 from reflex_monaco import monaco
 from reflex_monaco.monaco import MonacoEditor
 
 
 class YamlValidationMonaco(MonacoEditor):
-    """Monaco Editor with YAML syntax validation using monaco-yaml."""
+    """Extended Monaco editor with YAML validation capabilities."""
     
     def add_imports(self):
-        """Add required imports for YAML validation."""
         return {
-            "monaco-yaml": "configureMonacoYaml",
-            "js-yaml": "load",
-            "react": ["useEffect", "useCallback"],
-            "@monaco-editor/react": "useMonaco",
+            "js-yaml": "load as yamlLoad",
         }
     
     def add_hooks(self):
-        """Add YAML validation hooks following airbyte-platform pattern."""
         return [
             """
-            const monaco = useMonaco();
-            
-            useEffect(() => {
-                if (monaco) {
-                    // Configure monaco-yaml for YAML validation
-                    configureMonacoYaml(monaco, {
-                        enableSchemaRequest: false,
-                        hover: true,
-                        completion: true,
-                        validate: true,
-                        format: true,
-                    });
-                }
-            }, [monaco]);
-            """,
-            """
-            const validateYamlSyntax = useCallback((editor, yamlValue) => {
-                if (!monaco || !editor || !yamlValue) return;
-                
+            // Simple YAML syntax validation using js-yaml
+            const validateYamlSyntax = (editor, monaco) => {
                 const model = editor.getModel();
                 if (!model) return;
                 
-                const errOwner = "yaml";
+                const content = model.getValue();
+                const markers = [];
                 
                 try {
-                    load(yamlValue);
-                    // Clear error markers on valid YAML
-                    monaco.editor.setModelMarkers(model, errOwner, []);
-                } catch (err) {
-                    // Set error markers for invalid YAML
-                    const mark = err.mark;
-                    if (mark) {
-                        monaco.editor.setModelMarkers(model, errOwner, [{
-                            startLineNumber: mark.line + 1,
-                            startColumn: mark.column + 1,
-                            endLineNumber: mark.line + 1,
-                            endColumn: mark.column + 2,
-                            message: err.message,
-                            severity: monaco.MarkerSeverity.Error,
-                        }]);
+                    yamlLoad(content);
+                    // YAML is valid, clear any existing markers
+                } catch (error) {
+                    // YAML syntax error detected
+                    const lines = content.split('\\n');
+                    let errorLine = 1;
+                    
+                    // Try to extract line number from error message
+                    const lineMatch = error.message.match(/line (\\d+)/);
+                    if (lineMatch) {
+                        errorLine = parseInt(lineMatch[1]);
                     }
+                    
+                    // Create error marker
+                    markers.push({
+                        severity: monaco.MarkerSeverity.Error,
+                        startLineNumber: errorLine,
+                        startColumn: 1,
+                        endLineNumber: errorLine,
+                        endColumn: lines[errorLine - 1] ? lines[errorLine - 1].length + 1 : 1,
+                        message: 'YAML syntax error: ' + error.message
+                    });
                 }
-            }, [monaco]);
+                
+                monaco.editor.setModelMarkers(model, 'yaml-validation', markers);
+            };
             
-            // Trigger validation when editor content changes
-            useEffect(() => {
-                if (monaco && validateYamlSyntax) {
-                    const editor = monaco.editor.getEditors()[0];
-                    if (editor) {
-                        const model = editor.getModel();
-                        if (model) {
-                            validateYamlSyntax(editor, model.getValue());
-                            
-                            // Listen for content changes
-                            const disposable = model.onDidChangeContent(() => {
-                                validateYamlSyntax(editor, model.getValue());
-                            });
-                            
-                            return () => disposable.dispose();
-                        }
+            // Set up validation on content change
+            const setupYamlValidation = () => {
+                const editors = monaco.editor.getEditors();
+                editors.forEach(editor => {
+                    const model = editor.getModel();
+                    if (model && model.getLanguageId() === 'yaml') {
+                        // Validate immediately
+                        validateYamlSyntax(editor, monaco);
+                        
+                        // Validate on content change
+                        model.onDidChangeContent(() => {
+                            validateYamlSyntax(editor, monaco);
+                        });
                     }
-                }
-            }, [monaco, validateYamlSyntax]);
+                });
+            };
+            
+            // Wait for monaco to be available
+            if (typeof monaco !== 'undefined') {
+                setupYamlValidation();
+            } else {
+                const checkMonaco = setInterval(() => {
+                    if (typeof monaco !== 'undefined') {
+                        clearInterval(checkMonaco);
+                        setupYamlValidation();
+                    }
+                }, 100);
+                
+                setTimeout(() => clearInterval(checkMonaco), 10000);
+            }
             """
         ]
+
+
 
 
 class YamlEditorState(rx.State):
