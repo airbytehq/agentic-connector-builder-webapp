@@ -2,6 +2,90 @@
 
 import reflex as rx
 from reflex_monaco import monaco
+from reflex_monaco.monaco import MonacoEditor
+
+
+class YamlValidationMonaco(MonacoEditor):
+    """Extended Monaco editor with YAML validation capabilities."""
+    
+    def add_imports(self):
+        return {
+            "js-yaml": "load as yamlLoad",
+        }
+    
+    def add_hooks(self):
+        return [
+            """
+            // Simple YAML syntax validation using js-yaml
+            const validateYamlSyntax = (editor, monaco) => {
+                const model = editor.getModel();
+                if (!model) return;
+                
+                const content = model.getValue();
+                const markers = [];
+                
+                try {
+                    yamlLoad(content);
+                    // YAML is valid, clear any existing markers
+                } catch (error) {
+                    // YAML syntax error detected
+                    const lines = content.split('\\n');
+                    let errorLine = 1;
+                    
+                    // Try to extract line number from error message
+                    const lineMatch = error.message.match(/line (\\d+)/);
+                    if (lineMatch) {
+                        errorLine = parseInt(lineMatch[1]);
+                    }
+                    
+                    // Create error marker
+                    markers.push({
+                        severity: monaco.MarkerSeverity.Error,
+                        startLineNumber: errorLine,
+                        startColumn: 1,
+                        endLineNumber: errorLine,
+                        endColumn: lines[errorLine - 1] ? lines[errorLine - 1].length + 1 : 1,
+                        message: 'YAML syntax error: ' + error.message
+                    });
+                }
+                
+                monaco.editor.setModelMarkers(model, 'yaml-validation', markers);
+            };
+            
+            // Set up validation on content change
+            const setupYamlValidation = () => {
+                const editors = monaco.editor.getEditors();
+                editors.forEach(editor => {
+                    const model = editor.getModel();
+                    if (model && model.getLanguageId() === 'yaml') {
+                        // Validate immediately
+                        validateYamlSyntax(editor, monaco);
+                        
+                        // Validate on content change
+                        model.onDidChangeContent(() => {
+                            validateYamlSyntax(editor, monaco);
+                        });
+                    }
+                });
+            };
+            
+            // Wait for monaco to be available
+            if (typeof monaco !== 'undefined') {
+                setupYamlValidation();
+            } else {
+                const checkMonaco = setInterval(() => {
+                    if (typeof monaco !== 'undefined') {
+                        clearInterval(checkMonaco);
+                        setupYamlValidation();
+                    }
+                }, 100);
+                
+                setTimeout(() => clearInterval(checkMonaco), 10000);
+            }
+            """
+        ]
+
+
 
 
 class YamlEditorState(rx.State):
@@ -84,7 +168,7 @@ def yaml_editor_component() -> rx.Component:
             width="100%",
             mb=2,
         ),
-        monaco(
+        YamlValidationMonaco.create(
             value=YamlEditorState.yaml_content,
             language="yaml",
             theme="vs-dark",

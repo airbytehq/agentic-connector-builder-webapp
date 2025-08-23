@@ -46,12 +46,8 @@ class TestYamlEditorSchemaIntegration:
 
     @pytest.mark.e2e
     @pytest.mark.browser
-    @pytest.mark.xfail(reason="YAML syntax error highlighting not implemented")
     async def test_syntax_error_shows_red_squiggly(self, app_page: Page):
-        """Test that YAML syntax errors show red squiggly underlines.
-
-        EXPECTED TO FAIL: Current Monaco editor lacks YAML syntax validation.
-        """
+        """Test that YAML syntax errors show red squiggly underlines."""
         await self._wait_for_monaco_editor_ready(app_page)
 
         editor_textarea = app_page.locator(".monaco-editor textarea")
