@@ -86,10 +86,10 @@ def connector_builder_tabs() -> rx.Component:
     """Create the main tabs component with all modalities."""
     return rx.tabs.root(
         rx.tabs.list(
-            rx.tabs.trigger("Requirements", value="requirements"),
-            rx.tabs.trigger("Progress", value="progress"),
-            rx.tabs.trigger("Code", value="code"),
-            rx.tabs.trigger("Save and Publish", value="save_publish"),
+            rx.tabs.trigger("📋 Define Requirements", value="requirements"),
+            rx.tabs.trigger("⚙️ Connector Build Progress", value="progress"),
+            rx.tabs.trigger("</> Code Review", value="code"),
+            rx.tabs.trigger("💾 Save and Publish", value="save_publish"),
         ),
         rx.tabs.content(
             requirements_tab_content(

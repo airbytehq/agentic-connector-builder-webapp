@@ -113,7 +113,10 @@ def requirements_tab_content(
                 size="2",
             ),
             rx.text_area(
-                placeholder="assert response.status_code == 200\nassert 'data' in response.json()\nassert len(response.json()['data']) > 0",
+                placeholder=(
+                    "All streams should have at least 50 records.\n"
+                    "The 'transactions' stream should have at least a thousand records."
+                ),
                 value=test_list,
                 on_change=on_test_list_change,
                 disabled=fields_disabled,
