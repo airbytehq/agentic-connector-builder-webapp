@@ -7,5 +7,5 @@ __all__ = [
     "requirements_tab_content",
     "progress_tab_content",
     "code_tab_content",
-    "save_publish_tab_content"
+    "save_publish_tab_content",
 ]

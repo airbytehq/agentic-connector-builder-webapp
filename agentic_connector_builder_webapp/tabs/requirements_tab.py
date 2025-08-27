@@ -26,7 +26,6 @@ def requirements_tab_content(
             size="4",
             mb=6,
         ),
-
         rx.vstack(
             rx.text("Source API name", weight="bold", size="3"),
             rx.input(
@@ -40,7 +39,6 @@ def requirements_tab_content(
             align="start",
             width="100%",
         ),
-
         rx.vstack(
             rx.text("Connector name", weight="bold", size="3"),
             rx.input(
@@ -55,7 +53,6 @@ def requirements_tab_content(
             align="start",
             width="100%",
         ),
-
         rx.vstack(
             rx.text("Documentation URLs (Optional)", weight="bold", size="3"),
             rx.text(
@@ -76,9 +73,10 @@ def requirements_tab_content(
             align="start",
             width="100%",
         ),
-
         rx.vstack(
-            rx.text("Additional functional requirements (Optional)", weight="bold", size="3"),
+            rx.text(
+                "Additional functional requirements (Optional)", weight="bold", size="3"
+            ),
             rx.text_area(
                 placeholder="Describe any specific requirements, rate limits, authentication needs, etc.",
                 value=functional_requirements,
@@ -92,7 +90,6 @@ def requirements_tab_content(
             align="start",
             width="100%",
         ),
-
         rx.vstack(
             rx.text("List of tests (Optional)", weight="bold", size="3"),
             rx.text(
@@ -113,7 +110,6 @@ def requirements_tab_content(
             align="start",
             width="100%",
         ),
-
         spacing="6",
         align="start",
         width="100%",

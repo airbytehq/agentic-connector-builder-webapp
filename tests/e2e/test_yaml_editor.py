@@ -1851,10 +1851,14 @@ class TestConnectorBuilderTabs:
         await self._wait_for_tabs_ready(app_page)
 
         # Check for all four tab triggers
-        requirements_tab = app_page.locator("button[role='tab']:has-text('Requirements')")
+        requirements_tab = app_page.locator(
+            "button[role='tab']:has-text('Requirements')"
+        )
         progress_tab = app_page.locator("button[role='tab']:has-text('Progress')")
         code_tab = app_page.locator("button[role='tab']:has-text('Code')")
-        save_publish_tab = app_page.locator("button[role='tab']:has-text('Save and Publish')")
+        save_publish_tab = app_page.locator(
+            "button[role='tab']:has-text('Save and Publish')"
+        )
 
         await expect(requirements_tab).to_be_visible()
         await expect(progress_tab).to_be_visible()
@@ -1876,25 +1880,33 @@ class TestConnectorBuilderTabs:
         """Test that clicking tabs changes the active tab and content."""
         await self._wait_for_tabs_ready(app_page)
 
-        requirements_tab = app_page.locator("button[role='tab']:has-text('Requirements')")
+        requirements_tab = app_page.locator(
+            "button[role='tab']:has-text('Requirements')"
+        )
         await requirements_tab.click()
         await expect(requirements_tab).to_have_attribute("aria-selected", "true")
 
-        requirements_content = app_page.locator("text=Define your connector requirements")
+        requirements_content = app_page.locator(
+            "text=Define your connector requirements"
+        )
         await expect(requirements_content).to_be_visible()
 
         progress_tab = app_page.locator("button[role='tab']:has-text('Progress')")
         await progress_tab.click()
         await expect(progress_tab).to_have_attribute("aria-selected", "true")
 
-        progress_content = app_page.locator("text=Track your connector development progress")
+        progress_content = app_page.locator(
+            "text=Track your connector development progress"
+        )
         await expect(progress_content).to_be_visible()
 
         code_tab = app_page.locator("button[role='tab']:has-text('Code')")
         await code_tab.click()
         await expect(code_tab).to_have_attribute("aria-selected", "true")
 
-        yaml_heading = app_page.locator("h1:has-text('YAML Connector Configuration Editor')")
+        yaml_heading = app_page.locator(
+            "h1:has-text('YAML Connector Configuration Editor')"
+        )
         await expect(yaml_heading).to_be_visible()
 
     @pytest.mark.e2e
@@ -1903,14 +1915,18 @@ class TestConnectorBuilderTabs:
         """Test that placeholder content displays correctly in non-Code tabs."""
         await self._wait_for_tabs_ready(app_page)
 
-        requirements_tab = app_page.locator("button[role='tab']:has-text('Requirements')")
+        requirements_tab = app_page.locator(
+            "button[role='tab']:has-text('Requirements')"
+        )
         await requirements_tab.click()
 
         configure_button = app_page.locator("button:has-text('Configure Requirements')")
         await expect(configure_button).to_be_visible()
         await expect(configure_button).to_be_disabled()
 
-        save_publish_tab = app_page.locator("button[role='tab']:has-text('Save and Publish')")
+        save_publish_tab = app_page.locator(
+            "button[role='tab']:has-text('Save and Publish')"
+        )
         await save_publish_tab.click()
 
         save_button = app_page.locator("button:has-text('Save Draft')")
@@ -1940,11 +1956,17 @@ class TestConnectorBuilderTabs:
         editor_element = app_page.locator(".monaco-editor").first()
         await expect(editor_element).to_contain_text("example-connector")
 
-    async def _wait_for_monaco_editor_ready(self, page: Page, timeout: int = 15000) -> None:
+    async def _wait_for_monaco_editor_ready(
+        self, page: Page, timeout: int = 15000
+    ) -> None:
         """Wait for Monaco editor to be fully loaded and ready."""
         try:
             await page.wait_for_selector(".monaco-editor", timeout=timeout)
-            await page.wait_for_selector(".monaco-editor .monaco-editor-background", timeout=5000)
+            await page.wait_for_selector(
+                ".monaco-editor .monaco-editor-background", timeout=5000
+            )
             await page.wait_for_selector(".monaco-editor textarea", timeout=5000)
         except PlaywrightTimeoutError as e:
-            raise AssertionError(f"Monaco editor failed to load within {timeout}ms. Error: {str(e)}") from e
+            raise AssertionError(
+                f"Monaco editor failed to load within {timeout}ms. Error: {str(e)}"
+            ) from e

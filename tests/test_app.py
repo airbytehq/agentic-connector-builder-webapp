@@ -84,7 +84,7 @@ class TestYamlEditorComponent:
         component = yaml_editor_component(
             yaml_content="test: content",
             on_change=YamlEditorState.update_yaml_content,
-            on_reset=YamlEditorState.reset_yaml_content
+            on_reset=YamlEditorState.reset_yaml_content,
         )
         assert component is not None
         # Component should be a Reflex component (has certain attributes)
@@ -96,7 +96,7 @@ class TestYamlEditorComponent:
         component = yaml_editor_component(
             yaml_content="test: content",
             on_change=YamlEditorState.update_yaml_content,
-            on_reset=YamlEditorState.reset_yaml_content
+            on_reset=YamlEditorState.reset_yaml_content,
         )
         # The component should be properly structured
         assert component is not None
