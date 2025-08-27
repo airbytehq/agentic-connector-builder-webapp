@@ -1,5 +1,7 @@
 """Requirements tab component."""
 
+from collections.abc import Callable
+
 import reflex as rx
 
 
@@ -9,13 +11,26 @@ def requirements_tab_content(
     documentation_urls: str,
     functional_requirements: str,
     test_list: str,
-    on_source_api_name_change,
-    on_connector_name_change,
-    on_documentation_urls_change,
-    on_functional_requirements_change,
-    on_test_list_change,
+    on_source_api_name_change: Callable[[str], None],
+    on_connector_name_change: Callable[[str], None],
+    on_documentation_urls_change: Callable[[str], None],
+    on_functional_requirements_change: Callable[[str], None],
+    on_test_list_change: Callable[[str], None],
 ) -> rx.Component:
-    """Requirements tab content with form inputs."""
+    """Requirements tab content with form inputs.
+
+    Args:
+        source_api_name: Current value of the source API name field
+        connector_name: Current value of the connector name field
+        documentation_urls: Current value of the documentation URLs field
+        functional_requirements: Current value of the functional requirements field
+        test_list: Current value of the test list field
+        on_source_api_name_change: Callback for source API name changes
+        on_connector_name_change: Callback for connector name changes
+        on_documentation_urls_change: Callback for documentation URLs changes
+        on_functional_requirements_change: Callback for functional requirements changes
+        on_test_list_change: Callback for test list changes
+    """
     fields_disabled = source_api_name.strip() == ""
 
     return rx.vstack(
