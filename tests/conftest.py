@@ -57,12 +57,12 @@ type: api
 
 @pytest.fixture
 def yaml_editor_state():
-    """Fixture providing a YamlEditorState instance for testing."""
+    """Fixture providing a ConnectorBuilderState instance for testing."""
     from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
-        YamlEditorState,
+        ConnectorBuilderState,
     )
 
-    return YamlEditorState()
+    return ConnectorBuilderState()
 
 
 # Configure pytest settings
