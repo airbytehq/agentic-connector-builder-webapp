@@ -5,6 +5,8 @@ import pytest
 from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
     YamlEditorState,
     index,
+)
+from agentic_connector_builder_webapp.components.yaml_editor import (
     yaml_editor_component,
 )
 
@@ -76,7 +78,11 @@ class TestYamlEditorComponent:
     @pytest.mark.unit
     def test_yaml_editor_component_returns_component(self):
         """Test that yaml_editor_component returns a Reflex component."""
-        component = yaml_editor_component()
+        component = yaml_editor_component(
+            yaml_content="test: content",
+            on_change=YamlEditorState.update_yaml_content,
+            on_reset=YamlEditorState.reset_yaml_content
+        )
         assert component is not None
         # Component should be a Reflex component (has certain attributes)
         assert hasattr(component, "children") or hasattr(component, "tag")
@@ -84,7 +90,11 @@ class TestYamlEditorComponent:
     @pytest.mark.unit
     def test_yaml_editor_component_structure(self):
         """Test the basic structure of the YAML editor component."""
-        component = yaml_editor_component()
+        component = yaml_editor_component(
+            yaml_content="test: content",
+            on_change=YamlEditorState.update_yaml_content,
+            on_reset=YamlEditorState.reset_yaml_content
+        )
         # The component should be properly structured
         assert component is not None
 

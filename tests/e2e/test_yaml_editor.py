@@ -1832,13 +1832,13 @@ class TestConnectorBuilderTabs:
         try:
             # Wait for tabs container
             await page.wait_for_selector("[role='tablist']", timeout=timeout)
-            
+
             # Wait for all tab triggers to be present
             await page.wait_for_selector("button[role='tab']", timeout=5000)
-            
+
             # Wait for tab content to be present
             await page.wait_for_selector("[role='tabpanel']", timeout=5000)
-            
+
         except PlaywrightTimeoutError as e:
             raise AssertionError(
                 f"Tabs failed to load within {timeout}ms. Error: {str(e)}"
@@ -1849,13 +1849,13 @@ class TestConnectorBuilderTabs:
     async def test_all_tabs_are_present(self, app_page: Page):
         """Test that all four tabs are present and visible."""
         await self._wait_for_tabs_ready(app_page)
-        
+
         # Check for all four tab triggers
         requirements_tab = app_page.locator("button[role='tab']:has-text('Requirements')")
         progress_tab = app_page.locator("button[role='tab']:has-text('Progress')")
         code_tab = app_page.locator("button[role='tab']:has-text('Code')")
         save_publish_tab = app_page.locator("button[role='tab']:has-text('Save and Publish')")
-        
+
         await expect(requirements_tab).to_be_visible()
         await expect(progress_tab).to_be_visible()
         await expect(code_tab).to_be_visible()
@@ -1866,7 +1866,7 @@ class TestConnectorBuilderTabs:
     async def test_code_tab_is_default_active(self, app_page: Page):
         """Test that Code tab is active by default."""
         await self._wait_for_tabs_ready(app_page)
-        
+
         code_tab = app_page.locator("button[role='tab']:has-text('Code')")
         await expect(code_tab).to_have_attribute("aria-selected", "true")
 
@@ -1875,25 +1875,25 @@ class TestConnectorBuilderTabs:
     async def test_tab_navigation_works(self, app_page: Page):
         """Test that clicking tabs changes the active tab and content."""
         await self._wait_for_tabs_ready(app_page)
-        
+
         requirements_tab = app_page.locator("button[role='tab']:has-text('Requirements')")
         await requirements_tab.click()
         await expect(requirements_tab).to_have_attribute("aria-selected", "true")
-        
+
         requirements_content = app_page.locator("text=Define your connector requirements")
         await expect(requirements_content).to_be_visible()
-        
+
         progress_tab = app_page.locator("button[role='tab']:has-text('Progress')")
         await progress_tab.click()
         await expect(progress_tab).to_have_attribute("aria-selected", "true")
-        
+
         progress_content = app_page.locator("text=Track your connector development progress")
         await expect(progress_content).to_be_visible()
-        
+
         code_tab = app_page.locator("button[role='tab']:has-text('Code')")
         await code_tab.click()
         await expect(code_tab).to_have_attribute("aria-selected", "true")
-        
+
         yaml_heading = app_page.locator("h1:has-text('YAML Connector Configuration Editor')")
         await expect(yaml_heading).to_be_visible()
 
@@ -1902,17 +1902,17 @@ class TestConnectorBuilderTabs:
     async def test_placeholder_content_displays_correctly(self, app_page: Page):
         """Test that placeholder content displays correctly in non-Code tabs."""
         await self._wait_for_tabs_ready(app_page)
-        
+
         requirements_tab = app_page.locator("button[role='tab']:has-text('Requirements')")
         await requirements_tab.click()
-        
+
         configure_button = app_page.locator("button:has-text('Configure Requirements')")
         await expect(configure_button).to_be_visible()
         await expect(configure_button).to_be_disabled()
-        
+
         save_publish_tab = app_page.locator("button[role='tab']:has-text('Save and Publish')")
         await save_publish_tab.click()
-        
+
         save_button = app_page.locator("button:has-text('Save Draft')")
         publish_button = app_page.locator("button:has-text('Publish Connector')")
         await expect(save_button).to_be_visible()
@@ -1925,18 +1925,18 @@ class TestConnectorBuilderTabs:
     async def test_yaml_editor_still_works_in_code_tab(self, app_page: Page):
         """Test that YAML editor functionality still works within Code tab."""
         await self._wait_for_tabs_ready(app_page)
-        
+
         code_tab = app_page.locator("button[role='tab']:has-text('Code')")
         await code_tab.click()
-        
+
         # Wait for Monaco editor to be ready (reuse existing helper)
         await self._wait_for_monaco_editor_ready(app_page)
-        
+
         # Test that reset button still works
         reset_button = app_page.locator("button:has-text('Reset to Example')")
         await expect(reset_button).to_be_visible()
         await expect(reset_button).to_be_enabled()
-        
+
         editor_element = app_page.locator(".monaco-editor").first()
         await expect(editor_element).to_contain_text("example-connector")
 
