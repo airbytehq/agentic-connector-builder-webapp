@@ -81,25 +81,6 @@ transformations:
         """Set the current active tab."""
         self.current_tab = tab
 
-    def update_source_api_name(self, value: str):
-        """Update the source API name."""
-        self.source_api_name = value
-
-    def update_connector_name(self, value: str):
-        """Update the connector name."""
-        self.connector_name = value
-
-    def update_documentation_urls(self, value: str):
-        """Update the documentation URLs."""
-        self.documentation_urls = value
-
-    def update_functional_requirements(self, value: str):
-        """Update the functional requirements."""
-        self.functional_requirements = value
-
-    def update_test_list(self, value: str):
-        """Update the test list."""
-        self.test_list = value
 
 
 def connector_builder_tabs() -> rx.Component:
@@ -118,11 +99,11 @@ def connector_builder_tabs() -> rx.Component:
                 documentation_urls=YamlEditorState.documentation_urls,
                 functional_requirements=YamlEditorState.functional_requirements,
                 test_list=YamlEditorState.test_list,
-                on_source_api_name_change=YamlEditorState.update_source_api_name,
-                on_connector_name_change=YamlEditorState.update_connector_name,
-                on_documentation_urls_change=YamlEditorState.update_documentation_urls,
-                on_functional_requirements_change=YamlEditorState.update_functional_requirements,
-                on_test_list_change=YamlEditorState.update_test_list,
+                on_source_api_name_change=YamlEditorState.set_source_api_name,
+                on_connector_name_change=YamlEditorState.set_connector_name,
+                on_documentation_urls_change=YamlEditorState.set_documentation_urls,
+                on_functional_requirements_change=YamlEditorState.set_functional_requirements,
+                on_test_list_change=YamlEditorState.set_test_list,
             ),
             value="requirements",
         ),

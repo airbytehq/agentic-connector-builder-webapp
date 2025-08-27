@@ -110,11 +110,11 @@ class TestYamlEditorComponent:
             documentation_urls="https://example.com",
             functional_requirements="Test requirements",
             test_list="assert True",
-            on_source_api_name_change=YamlEditorState.update_source_api_name,
-            on_connector_name_change=YamlEditorState.update_connector_name,
-            on_documentation_urls_change=YamlEditorState.update_documentation_urls,
-            on_functional_requirements_change=YamlEditorState.update_functional_requirements,
-            on_test_list_change=YamlEditorState.update_test_list,
+            on_source_api_name_change=YamlEditorState.set_source_api_name,
+            on_connector_name_change=YamlEditorState.set_connector_name,
+            on_documentation_urls_change=YamlEditorState.set_documentation_urls,
+            on_functional_requirements_change=YamlEditorState.set_functional_requirements,
+            on_test_list_change=YamlEditorState.set_test_list,
         )
         assert component is not None
         assert hasattr(component, "children") or hasattr(component, "tag")
