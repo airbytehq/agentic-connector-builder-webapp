@@ -9,6 +9,9 @@ from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
 from agentic_connector_builder_webapp.components.yaml_editor import (
     yaml_editor_component,
 )
+from agentic_connector_builder_webapp.tabs.requirements_tab import (
+    requirements_tab_content,
+)
 
 
 class TestYamlEditorState:
@@ -97,6 +100,24 @@ class TestYamlEditorComponent:
         )
         # The component should be properly structured
         assert component is not None
+
+    @pytest.mark.unit
+    def test_requirements_tab_content_returns_component(self):
+        """Test that requirements_tab_content returns a Reflex component."""
+        component = requirements_tab_content(
+            source_api_name="Test API",
+            connector_name="test-connector",
+            documentation_urls="https://example.com",
+            functional_requirements="Test requirements",
+            test_list="assert True",
+            on_source_api_name_change=YamlEditorState.update_source_api_name,
+            on_connector_name_change=YamlEditorState.update_connector_name,
+            on_documentation_urls_change=YamlEditorState.update_documentation_urls,
+            on_functional_requirements_change=YamlEditorState.update_functional_requirements,
+            on_test_list_change=YamlEditorState.update_test_list,
+        )
+        assert component is not None
+        assert hasattr(component, "children") or hasattr(component, "tag")
 
 
 class TestIndexPage:

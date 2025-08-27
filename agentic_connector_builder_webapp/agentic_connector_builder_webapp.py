@@ -13,7 +13,13 @@ from .tabs import (
 class YamlEditorState(rx.State):
     """State management for the YAML editor and tabs."""
 
-    current_tab: str = "code"
+    current_tab: str = "requirements"
+
+    source_api_name: str = ""
+    connector_name: str = ""
+    documentation_urls: str = ""
+    functional_requirements: str = ""
+    test_list: str = ""
 
     yaml_content: str = """# Example YAML configuration
 name: example-connector
@@ -75,6 +81,26 @@ transformations:
         """Set the current active tab."""
         self.current_tab = tab
 
+    def update_source_api_name(self, value: str):
+        """Update the source API name."""
+        self.source_api_name = value
+
+    def update_connector_name(self, value: str):
+        """Update the connector name."""
+        self.connector_name = value
+
+    def update_documentation_urls(self, value: str):
+        """Update the documentation URLs."""
+        self.documentation_urls = value
+
+    def update_functional_requirements(self, value: str):
+        """Update the functional requirements."""
+        self.functional_requirements = value
+
+    def update_test_list(self, value: str):
+        """Update the test list."""
+        self.test_list = value
+
 
 def connector_builder_tabs() -> rx.Component:
     """Create the main tabs component with all modalities."""
@@ -86,7 +112,18 @@ def connector_builder_tabs() -> rx.Component:
             rx.tabs.trigger("Save and Publish", value="save_publish"),
         ),
         rx.tabs.content(
-            requirements_tab_content(),
+            requirements_tab_content(
+                source_api_name=YamlEditorState.source_api_name,
+                connector_name=YamlEditorState.connector_name,
+                documentation_urls=YamlEditorState.documentation_urls,
+                functional_requirements=YamlEditorState.functional_requirements,
+                test_list=YamlEditorState.test_list,
+                on_source_api_name_change=YamlEditorState.update_source_api_name,
+                on_connector_name_change=YamlEditorState.update_connector_name,
+                on_documentation_urls_change=YamlEditorState.update_documentation_urls,
+                on_functional_requirements_change=YamlEditorState.update_functional_requirements,
+                on_test_list_change=YamlEditorState.update_test_list,
+            ),
             value="requirements",
         ),
         rx.tabs.content(
@@ -105,7 +142,7 @@ def connector_builder_tabs() -> rx.Component:
             save_publish_tab_content(),
             value="save_publish",
         ),
-        default_value="code",
+        default_value="requirements",
         value=YamlEditorState.current_tab,
         on_change=YamlEditorState.set_current_tab,
         width="100%",
