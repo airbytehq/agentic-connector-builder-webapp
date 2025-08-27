@@ -1,11 +1,18 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
 import reflex as rx
-from reflex_monaco import monaco
+from .tabs import (
+    requirements_tab_content,
+    progress_tab_content,
+    code_tab_content,
+    save_publish_tab_content,
+)
 
 
 class YamlEditorState(rx.State):
-    """State management for the YAML editor."""
+    """State management for the YAML editor and tabs."""
+
+    current_tab: str = "code"
 
     yaml_content: str = """# Example YAML configuration
 name: example-connector
@@ -63,54 +70,49 @@ transformations:
       email: email_address
 """
 
+    def set_current_tab(self, tab: str):
+        """Set the current active tab."""
+        self.current_tab = tab
 
-def yaml_editor_component() -> rx.Component:
-    """Create the Monaco YAML editor component."""
-    return rx.vstack(
-        rx.heading("YAML Connector Configuration Editor", size="6", mb=4),
-        rx.hstack(
-            rx.button(
-                "Reset to Example",
-                on_click=YamlEditorState.reset_yaml_content,
-                color_scheme="blue",
-                size="2",
-            ),
-            rx.spacer(),
-            rx.text(
-                "Content length will be calculated dynamically",
-                color="gray.600",
-                size="2",
-            ),
-            width="100%",
-            mb=2,
+
+def connector_builder_tabs() -> rx.Component:
+    """Create the main tabs component with all modalities."""
+    return rx.tabs.root(
+        rx.tabs.list(
+            rx.tabs.trigger("Requirements", value="requirements"),
+            rx.tabs.trigger("Progress", value="progress"),
+            rx.tabs.trigger("Code", value="code"),
+            rx.tabs.trigger("Save and Publish", value="save_publish"),
         ),
-        monaco(
-            value=YamlEditorState.yaml_content,
-            language="yaml",
-            theme="vs-dark",
-            height="500px",
-            width="100%",
-            on_change=YamlEditorState.update_yaml_content,
-            options={
-                "minimap": {"enabled": False},
-                "fontSize": 14,
-                "lineNumbers": "on",
-                "roundedSelection": False,
-                "scrollBeyondLastLine": False,
-                "automaticLayout": True,
-                "tabSize": 2,
-                "insertSpaces": True,
-                "wordWrap": "on",
-            },
+        rx.tabs.content(
+            requirements_tab_content(),
+            value="requirements",
         ),
+        rx.tabs.content(
+            progress_tab_content(),
+            value="progress",
+        ),
+        rx.tabs.content(
+            code_tab_content(
+                yaml_content=YamlEditorState.yaml_content,
+                on_change=YamlEditorState.update_yaml_content,
+                on_reset=YamlEditorState.reset_yaml_content,
+            ),
+            value="code",
+        ),
+        rx.tabs.content(
+            save_publish_tab_content(),
+            value="save_publish",
+        ),
+        default_value="code",
+        value=YamlEditorState.current_tab,
+        on_change=YamlEditorState.set_current_tab,
         width="100%",
-        height="100%",
-        spacing="4",
     )
 
 
 def index() -> rx.Component:
-    """Main page with YAML editor."""
+    """Main page with tabbed connector builder interface."""
     return rx.container(
         rx.vstack(
             rx.heading(
@@ -125,7 +127,7 @@ def index() -> rx.Component:
                 color="gray.600",
                 mb=8,
             ),
-            yaml_editor_component(),
+            connector_builder_tabs(),
             spacing="6",
             width="100%",
             max_width="1200px",
