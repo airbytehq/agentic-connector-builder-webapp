@@ -1,10 +1,11 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
 import reflex as rx
+
 from .tabs import (
-    requirements_tab_content,
-    progress_tab_content,
     code_tab_content,
+    progress_tab_content,
+    requirements_tab_content,
     save_publish_tab_content,
 )
 
