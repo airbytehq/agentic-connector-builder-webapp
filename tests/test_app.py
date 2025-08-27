@@ -3,18 +3,23 @@
 import pytest
 
 from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
-    YamlEditorState,
+    ConnectorBuilderState,
     index,
+)
+from agentic_connector_builder_webapp.components.yaml_editor import (
     yaml_editor_component,
+)
+from agentic_connector_builder_webapp.tabs.requirements_tab import (
+    requirements_tab_content,
 )
 
 
-class TestYamlEditorState:
-    """Test cases for YamlEditorState class."""
+class TestConnectorBuilderState:
+    """Test cases for ConnectorBuilderState class."""
 
     @pytest.mark.unit
     def test_initial_yaml_content(self, yaml_editor_state):
-        """Test that YamlEditorState has initial YAML content."""
+        """Test that ConnectorBuilderState has initial YAML content."""
         assert yaml_editor_state.yaml_content is not None
         assert len(yaml_editor_state.yaml_content) > 0
         assert "name: example-connector" in yaml_editor_state.yaml_content
@@ -76,7 +81,11 @@ class TestYamlEditorComponent:
     @pytest.mark.unit
     def test_yaml_editor_component_returns_component(self):
         """Test that yaml_editor_component returns a Reflex component."""
-        component = yaml_editor_component()
+        component = yaml_editor_component(
+            yaml_content="test: content",
+            on_change=ConnectorBuilderState.update_yaml_content,
+            on_reset=ConnectorBuilderState.reset_yaml_content,
+        )
         assert component is not None
         # Component should be a Reflex component (has certain attributes)
         assert hasattr(component, "children") or hasattr(component, "tag")
@@ -84,9 +93,31 @@ class TestYamlEditorComponent:
     @pytest.mark.unit
     def test_yaml_editor_component_structure(self):
         """Test the basic structure of the YAML editor component."""
-        component = yaml_editor_component()
+        component = yaml_editor_component(
+            yaml_content="test: content",
+            on_change=ConnectorBuilderState.update_yaml_content,
+            on_reset=ConnectorBuilderState.reset_yaml_content,
+        )
         # The component should be properly structured
         assert component is not None
+
+    @pytest.mark.unit
+    def test_requirements_tab_content_returns_component(self):
+        """Test that requirements_tab_content returns a Reflex component."""
+        component = requirements_tab_content(
+            source_api_name="Test API",
+            connector_name="test-connector",
+            documentation_urls="https://example.com",
+            functional_requirements="Test requirements",
+            test_list="assert True",
+            on_source_api_name_change=ConnectorBuilderState.set_source_api_name,
+            on_connector_name_change=ConnectorBuilderState.set_connector_name,
+            on_documentation_urls_change=ConnectorBuilderState.set_documentation_urls,
+            on_functional_requirements_change=ConnectorBuilderState.set_functional_requirements,
+            on_test_list_change=ConnectorBuilderState.set_test_list,
+        )
+        assert component is not None
+        assert hasattr(component, "children") or hasattr(component, "tag")
 
 
 class TestIndexPage:
@@ -172,8 +203,8 @@ class TestStateManagement:
     @pytest.mark.unit
     def test_multiple_state_instances(self):
         """Test that multiple state instances work independently."""
-        state1 = YamlEditorState()
-        state2 = YamlEditorState()
+        state1 = ConnectorBuilderState()
+        state2 = ConnectorBuilderState()
 
         test_content1 = "content1: value1"
         test_content2 = "content2: value2"
