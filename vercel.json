@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "buildCommand": "pip install -r requirements.txt && reflex init && reflex export --frontend-only --no-zip",
+  "outputDirectory": ".web/build/client",
+  "installCommand": "pip install -r requirements.txt",
+  "framework": null,
+  "env": {
+    "PYTHON_VERSION": "3.11"
+  }
+}

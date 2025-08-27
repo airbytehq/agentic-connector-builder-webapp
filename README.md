@@ -33,6 +33,20 @@ A full-stack agentic connector builder webapp with YAML editing capabilities. Th
 3. **Open your browser:**
    Navigate to `http://localhost:3000` to access the YAML editor interface.
 
+### Deploy to Vercel
+
+Deploy your own instance to Vercel with one click:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/airbytehq/agentic-connector-builder-webapp)
+
+Or manually:
+
+1. Fork this repository
+2. Connect it to Vercel
+3. Vercel will automatically detect the `vercel.json` configuration and deploy
+
+For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Development
 
 For detailed development setup, testing instructions, and contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).

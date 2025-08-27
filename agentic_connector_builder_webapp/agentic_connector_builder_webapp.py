@@ -81,6 +81,26 @@ transformations:
         """Set the current active tab."""
         self.current_tab = tab
 
+    def set_source_api_name(self, name: str):
+        """Set the source API name."""
+        self.source_api_name = name
+
+    def set_connector_name(self, name: str):
+        """Set the connector name."""
+        self.connector_name = name
+
+    def set_documentation_urls(self, urls: str):
+        """Set the documentation URLs."""
+        self.documentation_urls = urls
+
+    def set_functional_requirements(self, requirements: str):
+        """Set the functional requirements."""
+        self.functional_requirements = requirements
+
+    def set_test_list(self, tests: str):
+        """Set the test list."""
+        self.test_list = tests
+
 
 def connector_builder_tabs() -> rx.Component:
     """Create the main tabs component with all modalities."""

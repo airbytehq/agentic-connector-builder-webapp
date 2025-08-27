@@ -9,6 +9,9 @@ dependencies = [
     "reflex-monaco",
 ]
 
+[tool.setuptools]
+packages = ["agentic_connector_builder_webapp"]
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
