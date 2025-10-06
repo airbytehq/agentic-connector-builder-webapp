@@ -3,7 +3,7 @@
 from pydantic_ai import Agent
 
 chat_agent = Agent(
-    'openai:gpt-4o-mini',
+    "openai:gpt-4o-mini",
     system_prompt=(
         "You are a helpful assistant for the Agentic Connector Builder. "
         "You help users build data connectors by answering questions about "

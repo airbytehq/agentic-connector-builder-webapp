@@ -107,16 +107,17 @@ transformations:
                     self.current_streaming_message = text
                     yield
 
-            self.chat_messages.append({
-                "role": "assistant",
-                "content": self.current_streaming_message
-            })
+            self.chat_messages.append(
+                {"role": "assistant", "content": self.current_streaming_message}
+            )
             self.current_streaming_message = ""
         except Exception as e:
-            self.chat_messages.append({
-                "role": "assistant",
-                "content": f"Sorry, I encountered an error: {str(e)}"
-            })
+            self.chat_messages.append(
+                {
+                    "role": "assistant",
+                    "content": f"Sorry, I encountered an error: {str(e)}",
+                }
+            )
             self.current_streaming_message = ""
         finally:
             self.chat_loading = False
