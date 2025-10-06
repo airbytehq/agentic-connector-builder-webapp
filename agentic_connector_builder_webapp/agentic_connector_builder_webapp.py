@@ -171,60 +171,56 @@ def connector_builder_tabs() -> rx.Component:
 
 
 def index() -> rx.Component:
-    """Main page with tabbed connector builder interface and chat sidebar."""
+    """Main page with tabbed connector builder interface and fixed chat sidebar."""
     return rx.box(
-        rx.container(
-            rx.vstack(
-                rx.heading(
-                    "Agentic Connector Builder",
-                    size="9",
-                    text_align="center",
-                    mb=6,
-                ),
-                rx.text(
-                    "Build and configure data connectors using YAML",
-                    text_align="center",
-                    color="gray.600",
-                    mb=8,
-                ),
-                connector_builder_tabs(),
-                spacing="6",
-                width="100%",
-                max_width="1200px",
-                mx="auto",
-                py=8,
+        rx.box(
+            chat_sidebar(
+                messages=ConnectorBuilderState.chat_messages,
+                current_streaming_message=ConnectorBuilderState.current_streaming_message,
+                input_value=ConnectorBuilderState.chat_input,
+                loading=ConnectorBuilderState.chat_loading,
+                on_input_change=ConnectorBuilderState.set_chat_input,
+                on_send=ConnectorBuilderState.send_message,
             ),
-            width="100%",
+            position="fixed",
+            left="0",
+            top="0",
+            width="33.333%",
             height="100vh",
+            background="gray.900",
+            border_right="2px solid",
+            border_color="gray.700",
+            padding="6",
+            overflow_y="auto",
+            z_index="10",
         ),
-        rx.drawer.root(
-            rx.drawer.trigger(
-                rx.button(
-                    "💬 Chat",
-                    size="3",
-                    position="fixed",
-                    bottom="20px",
-                    right="20px",
-                    cursor="pointer",
-                ),
-            ),
-            rx.drawer.overlay(),
-            rx.drawer.portal(
-                rx.drawer.content(
-                    chat_sidebar(
-                        messages=ConnectorBuilderState.chat_messages,
-                        current_streaming_message=ConnectorBuilderState.current_streaming_message,
-                        input_value=ConnectorBuilderState.chat_input,
-                        loading=ConnectorBuilderState.chat_loading,
-                        on_input_change=ConnectorBuilderState.set_chat_input,
-                        on_send=ConnectorBuilderState.send_message,
+        rx.box(
+            rx.container(
+                rx.vstack(
+                    rx.heading(
+                        "Agentic Connector Builder",
+                        size="9",
+                        text_align="center",
+                        mb=6,
                     ),
-                    width="400px",
-                    height="100vh",
-                    padding="6",
+                    rx.text(
+                        "Build and configure data connectors using YAML",
+                        text_align="center",
+                        color="gray.600",
+                        mb=8,
+                    ),
+                    connector_builder_tabs(),
+                    spacing="6",
+                    width="100%",
+                    max_width="1200px",
+                    mx="auto",
+                    py=8,
                 ),
+                width="100%",
+                height="100vh",
             ),
-            direction="right",
+            margin_left="33.333%",
+            width="66.667%",
         ),
     )
 

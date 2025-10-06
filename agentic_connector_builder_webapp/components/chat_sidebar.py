@@ -44,9 +44,22 @@ def chat_sidebar(
     on_input_change,
     on_send,
 ) -> rx.Component:
-    """Create the chat sidebar drawer content."""
+    """Create the fixed chat sidebar component."""
     return rx.vstack(
-        rx.heading("Chat Assistant", size="6", mb=4),
+        rx.vstack(
+            rx.heading("💬 Chat Assistant", size="7", weight="bold"),
+            rx.text(
+                "Ask questions about connector building",
+                size="2",
+                color="gray.400",
+            ),
+            spacing="2",
+            mb=6,
+            pb=4,
+            border_bottom="1px solid",
+            border_color="gray.700",
+            width="100%",
+        ),
         rx.scroll_area(
             rx.vstack(
                 rx.foreach(messages, chat_message),
@@ -58,7 +71,7 @@ def chat_sidebar(
                 spacing="3",
                 width="100%",
             ),
-            height="400px",
+            flex="1",
             width="100%",
         ),
         rx.form(
@@ -81,6 +94,7 @@ def chat_sidebar(
             ),
             on_submit=on_send,
             width="100%",
+            mt=4,
         ),
         spacing="4",
         width="100%",
