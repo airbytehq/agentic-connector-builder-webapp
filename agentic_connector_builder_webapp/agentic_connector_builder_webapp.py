@@ -2,7 +2,6 @@
 
 import reflex as rx
 
-from .chat_agent import chat_agent
 from .components import chat_sidebar
 from .tabs import (
     code_tab_content,
@@ -10,6 +9,9 @@ from .tabs import (
     requirements_tab_content,
     save_publish_tab_content,
 )
+
+SIDEBAR_WIDTH_PERCENT = "33.333%"
+MAIN_CONTENT_WIDTH_PERCENT = "66.667%"
 
 
 class ConnectorBuilderState(rx.State):
@@ -88,10 +90,16 @@ transformations:
         """Set the current active tab."""
         self.current_tab = tab
 
+    def set_chat_input(self, value: str):
+        """Set the chat input value."""
+        self.chat_input = value
+
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
             return
+
+        from .chat_agent import chat_agent
 
         user_message = self.chat_input.strip()
         self.chat_messages.append({"role": "user", "content": user_message})
@@ -184,7 +192,7 @@ def index() -> rx.Component:
             position="fixed",
             left="0",
             top="0",
-            width="33.333%",
+            width=SIDEBAR_WIDTH_PERCENT,
             height="100vh",
             background="gray.900",
             border_right="2px solid",
@@ -218,8 +226,8 @@ def index() -> rx.Component:
                 width="100%",
                 height="100vh",
             ),
-            margin_left="33.333%",
-            width="66.667%",
+            margin_left=SIDEBAR_WIDTH_PERCENT,
+            width=MAIN_CONTENT_WIDTH_PERCENT,
         ),
     )
 
