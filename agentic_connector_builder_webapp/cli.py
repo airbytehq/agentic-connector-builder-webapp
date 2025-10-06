@@ -26,14 +26,7 @@ def main() -> None:
         )
         sys.exit(1)
 
-    cmd = ["reflex", "run"] + sys.argv[1:]
-
-    if cmd[0] != "reflex":
-        print(
-            "Error: Invalid command. Only 'reflex' command is allowed.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    cmd = ["reflex", "run"]
 
     try:
         result = subprocess.run(cmd, cwd=app_dir, shell=False, check=False)
