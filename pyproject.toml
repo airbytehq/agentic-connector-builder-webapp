@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "reflex",
     "reflex-monaco",
-    "pydantic-ai",
+    "pydantic-ai[mcp]",
 ]
 
 [project.optional-dependencies]

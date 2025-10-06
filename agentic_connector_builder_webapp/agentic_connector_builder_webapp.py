@@ -109,15 +109,16 @@ transformations:
         yield
 
         try:
-            async with chat_agent.run_stream(user_message) as response:
-                async for text in response.stream_text():
-                    self.current_streaming_message = text
-                    yield
+            async with chat_agent:
+                async with chat_agent.run_stream(user_message) as response:
+                    async for text in response.stream_text():
+                        self.current_streaming_message = text
+                        yield
 
-            self.chat_messages.append(
-                {"role": "assistant", "content": self.current_streaming_message}
-            )
-            self.current_streaming_message = ""
+                self.chat_messages.append(
+                    {"role": "assistant", "content": self.current_streaming_message}
+                )
+                self.current_streaming_message = ""
         except Exception as e:
             self.chat_messages.append(
                 {
