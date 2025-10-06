@@ -41,7 +41,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "playwright", marker = "extra == 'dev'", specifier = ">=1.40.0" },
-    { name = "pydantic-ai" },
+    { name = "pydantic-ai", extras = ["mcp"] },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "reflex" },
     { name = "reflex-monaco" },
