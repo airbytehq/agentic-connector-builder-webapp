@@ -12,11 +12,15 @@ def chat_message(message: dict) -> rx.Component:
             size="2",
             color=rx.cond(is_user, "white", "gray.100"),
         ),
-        background=rx.cond(is_user, "blue.600", "gray.700"),
-        padding="3",
-        border_radius="lg",
-        max_width="80%",
+        background=rx.cond(is_user, "blue.500", "gray.800"),
+        padding="4",
+        border_radius="16px",
+        max_width="85%",
         align_self=rx.cond(is_user, "flex-end", "flex-start"),
+        margin_left=rx.cond(is_user, "auto", "8px"),
+        margin_right=rx.cond(is_user, "8px", "auto"),
+        margin_top="4px",
+        margin_bottom="4px",
     )
 
 
@@ -28,11 +32,15 @@ def streaming_message(content: str) -> rx.Component:
             size="2",
             color="gray.100",
         ),
-        background="gray.700",
-        padding="3",
-        border_radius="lg",
-        max_width="80%",
+        background="gray.800",
+        padding="4",
+        border_radius="16px",
+        max_width="85%",
         align_self="flex-start",
+        margin_left="8px",
+        margin_right="auto",
+        margin_top="4px",
+        margin_bottom="4px",
     )
 
 
