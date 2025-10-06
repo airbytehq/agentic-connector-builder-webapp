@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from .components import chat_sidebar
 from .tabs import (
     code_tab_content,
     progress_tab_content,
@@ -44,6 +45,11 @@ transformations:
       email: email_address
 """
 
+    chat_messages: list[dict[str, str]] = []
+    chat_input: str = ""
+    current_streaming_message: str = ""
+    chat_loading: bool = False
+
     def get_content_length(self) -> int:
         """Get the content length."""
         return len(self.yaml_content)
@@ -80,6 +86,40 @@ transformations:
     def set_current_tab(self, tab: str):
         """Set the current active tab."""
         self.current_tab = tab
+
+    async def send_message(self):
+        """Send a message to the chat agent and get streaming response."""
+        if not self.chat_input.strip():
+            return
+
+        from .chat_agent import chat_agent
+
+        user_message = self.chat_input.strip()
+        self.chat_messages.append({"role": "user", "content": user_message})
+        self.chat_input = ""
+        self.chat_loading = True
+        self.current_streaming_message = ""
+        yield
+
+        try:
+            async with chat_agent.run_stream(user_message) as response:
+                async for text in response.stream_text():
+                    self.current_streaming_message = text
+                    yield
+
+            self.chat_messages.append({
+                "role": "assistant",
+                "content": self.current_streaming_message
+            })
+            self.current_streaming_message = ""
+        except Exception as e:
+            self.chat_messages.append({
+                "role": "assistant",
+                "content": f"Sorry, I encountered an error: {str(e)}"
+            })
+            self.current_streaming_message = ""
+        finally:
+            self.chat_loading = False
 
 
 def connector_builder_tabs() -> rx.Component:
@@ -130,30 +170,61 @@ def connector_builder_tabs() -> rx.Component:
 
 
 def index() -> rx.Component:
-    """Main page with tabbed connector builder interface."""
-    return rx.container(
-        rx.vstack(
-            rx.heading(
-                "Agentic Connector Builder",
-                size="9",
-                text_align="center",
-                mb=6,
+    """Main page with tabbed connector builder interface and chat sidebar."""
+    return rx.box(
+        rx.container(
+            rx.vstack(
+                rx.heading(
+                    "Agentic Connector Builder",
+                    size="9",
+                    text_align="center",
+                    mb=6,
+                ),
+                rx.text(
+                    "Build and configure data connectors using YAML",
+                    text_align="center",
+                    color="gray.600",
+                    mb=8,
+                ),
+                connector_builder_tabs(),
+                spacing="6",
+                width="100%",
+                max_width="1200px",
+                mx="auto",
+                py=8,
             ),
-            rx.text(
-                "Build and configure data connectors using YAML",
-                text_align="center",
-                color="gray.600",
-                mb=8,
-            ),
-            connector_builder_tabs(),
-            spacing="6",
             width="100%",
-            max_width="1200px",
-            mx="auto",
-            py=8,
+            height="100vh",
         ),
-        width="100%",
-        height="100vh",
+        rx.drawer.root(
+            rx.drawer.trigger(
+                rx.button(
+                    "💬 Chat",
+                    size="3",
+                    position="fixed",
+                    bottom="20px",
+                    right="20px",
+                    cursor="pointer",
+                ),
+            ),
+            rx.drawer.overlay(),
+            rx.drawer.portal(
+                rx.drawer.content(
+                    chat_sidebar(
+                        messages=ConnectorBuilderState.chat_messages,
+                        current_streaming_message=ConnectorBuilderState.current_streaming_message,
+                        input_value=ConnectorBuilderState.chat_input,
+                        loading=ConnectorBuilderState.chat_loading,
+                        on_input_change=ConnectorBuilderState.set_chat_input,
+                        on_send=ConnectorBuilderState.send_message,
+                    ),
+                    width="400px",
+                    height="100vh",
+                    padding="6",
+                ),
+            ),
+            direction="right",
+        ),
     )
 
 
