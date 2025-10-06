@@ -130,6 +130,11 @@ transformations:
                     {"role": "assistant", "content": self.current_streaming_message}
                 )
                 self.current_streaming_message = ""
+
+                if session_deps.yaml_content != self.yaml_content:
+                    self.yaml_content = session_deps.yaml_content
+                    yield  # Trigger UI update for yaml_content change
+
         except Exception as e:
             self.chat_messages.append(
                 {

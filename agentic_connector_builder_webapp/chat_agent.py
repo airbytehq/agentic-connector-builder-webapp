@@ -99,6 +99,8 @@ def get_manifest_text(
     - Include line numbers in the output for reference
     - Specify a line range to view only part of the content
 
+    This is a read-only operation that does not modify the manifest.
+
     Args:
         ctx: Runtime context with session dependencies
         with_line_numbers: If True, prepend each line with its line number
@@ -162,13 +164,15 @@ def insert_manifest_lines(
 
     To append to the end, use a line_number greater than the content length.
 
+    This operation modifies the session state and triggers a UI update.
+
     Args:
         ctx: Runtime context with session dependencies
         line_number: Where to insert (1-indexed). Content inserted before this line.
         lines: The content to insert (can contain multiple lines)
 
     Returns:
-        The updated manifest YAML content with the inserted lines
+        A confirmation message indicating success or describing any errors
     """
     try:
         if not ctx.deps.yaml_content:
@@ -180,11 +184,14 @@ def insert_manifest_lines(
             return f"Error: line_number must be >= 1, got {line_number}"
 
         new_lines = lines.splitlines(keepends=False)
+        num_new_lines = len(new_lines)
 
         insert_pos = min(line_number - 1, len(file_lines))
         result_lines = file_lines[:insert_pos] + new_lines + file_lines[insert_pos:]
 
-        return "\n".join(result_lines)
+        ctx.deps.yaml_content = "\n".join(result_lines)
+
+        return f"Successfully inserted {num_new_lines} line(s) at line {line_number}. The manifest has been updated and changes are visible in the UI."
 
     except Exception as e:
         return f"Error inserting lines into manifest: {str(e)}"
@@ -209,6 +216,8 @@ def replace_manifest_lines(
     and end_line are inclusive. For example, replacing lines 5-7 will replace
     lines 5, 6, and 7 with the new content.
 
+    This operation modifies the session state and triggers a UI update.
+
     Args:
         ctx: Runtime context with session dependencies
         start_line: First line to replace (1-indexed, inclusive)
@@ -216,7 +225,7 @@ def replace_manifest_lines(
         new_lines: The replacement content (can contain multiple lines)
 
     Returns:
-        The updated manifest YAML content with the replaced lines
+        A confirmation message indicating success or describing any errors
     """
     try:
         if not ctx.deps.yaml_content:
@@ -232,12 +241,16 @@ def replace_manifest_lines(
             return f"Error: end_line {end_line} is out of range (content has {len(file_lines)} lines)"
 
         replacement_lines = new_lines.splitlines(keepends=False)
+        num_replacement_lines = len(replacement_lines)
+        num_replaced = end_line - start_line + 1
 
         result_lines = (
             file_lines[: start_line - 1] + replacement_lines + file_lines[end_line:]
         )
 
-        return "\n".join(result_lines)
+        ctx.deps.yaml_content = "\n".join(result_lines)
+
+        return f"Successfully replaced {num_replaced} line(s) (lines {start_line}-{end_line}) with {num_replacement_lines} new line(s). The manifest has been updated and changes are visible in the UI."
 
     except Exception as e:
         return f"Error replacing lines in manifest: {str(e)}"

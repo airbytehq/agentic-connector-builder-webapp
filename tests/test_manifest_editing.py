@@ -135,7 +135,10 @@ class TestInsertManifestLines:
         mock_ctx.deps.yaml_content = sample_yaml_content
         result = insert_manifest_lines(mock_ctx, 1, "# New header comment")
 
-        lines = result.split("\n")
+        assert "Successfully inserted" in result
+        assert "1 line(s)" in result
+
+        lines = mock_ctx.deps.yaml_content.split("\n")
         assert lines[0] == "# New header comment"
         assert lines[1] == "name: test-connector"
 
@@ -144,7 +147,9 @@ class TestInsertManifestLines:
         mock_ctx.deps.yaml_content = multiline_yaml_content
         result = insert_manifest_lines(mock_ctx, 10, "inserted line")
 
-        lines = result.split("\n")
+        assert "Successfully inserted" in result
+
+        lines = mock_ctx.deps.yaml_content.split("\n")
         assert "inserted line" in lines[9]
         assert "line 10" in lines[10]
 
@@ -153,7 +158,9 @@ class TestInsertManifestLines:
         mock_ctx.deps.yaml_content = multiline_yaml_content
         result = insert_manifest_lines(mock_ctx, 100, "# End comment")
 
-        assert result.strip().endswith("# End comment")
+        assert "Successfully inserted" in result
+
+        assert mock_ctx.deps.yaml_content.strip().endswith("# End comment")
 
     def test_insert_multiline(self, mock_ctx, sample_yaml_content):
         """Test inserting multiple lines at once."""
@@ -161,7 +168,10 @@ class TestInsertManifestLines:
         multiline_content = "# Comment 1\n# Comment 2\n# Comment 3"
         result = insert_manifest_lines(mock_ctx, 1, multiline_content)
 
-        lines = result.split("\n")
+        assert "Successfully inserted" in result
+        assert "3 line(s)" in result
+
+        lines = mock_ctx.deps.yaml_content.split("\n")
         assert lines[0] == "# Comment 1"
         assert lines[1] == "# Comment 2"
         assert lines[2] == "# Comment 3"
@@ -172,6 +182,8 @@ class TestInsertManifestLines:
         mock_ctx.deps.yaml_content = sample_yaml_content
         result = insert_manifest_lines(mock_ctx, 0, "content")
         assert "Error: line_number must be >= 1" in result
+        # yaml_content should not be modified
+        assert mock_ctx.deps.yaml_content == sample_yaml_content
 
     def test_insert_no_content(self, mock_ctx):
         """Test error when no YAML content available."""
@@ -188,7 +200,10 @@ class TestReplaceManifestLines:
         mock_ctx.deps.yaml_content = multiline_yaml_content
         result = replace_manifest_lines(mock_ctx, 5, 5, "replaced line 5")
 
-        lines = result.split("\n")
+        assert "Successfully replaced" in result
+        assert "1 line(s)" in result
+
+        lines = mock_ctx.deps.yaml_content.split("\n")
         assert "replaced line 5" in lines[4]
         assert "line 4" in lines[3]
         assert "line 6" in lines[5]
@@ -203,7 +218,11 @@ class TestReplaceManifestLines:
             "replacement line 1\nreplacement line 2",
         )
 
-        lines = result.split("\n")
+        assert "Successfully replaced" in result
+        assert "4 line(s)" in result  # Replaced 4 lines (5-8)
+        assert "2 new line(s)" in result  # With 2 new lines
+
+        lines = mock_ctx.deps.yaml_content.split("\n")
         assert "replacement line 1" in lines[4]
         assert "replacement line 2" in lines[5]
         assert "line 9" in lines[6]
@@ -213,7 +232,9 @@ class TestReplaceManifestLines:
         mock_ctx.deps.yaml_content = sample_yaml_content
         result = replace_manifest_lines(mock_ctx, 1, 2, "# New header")
 
-        lines = result.split("\n")
+        assert "Successfully replaced" in result
+
+        lines = mock_ctx.deps.yaml_content.split("\n")
         assert "# New header" in lines[0]
         assert 'description: "A test connector"' in lines[1]
 
@@ -222,36 +243,49 @@ class TestReplaceManifestLines:
         mock_ctx.deps.yaml_content = multiline_yaml_content
         result = replace_manifest_lines(mock_ctx, 19, 20, "# End lines replaced")
 
-        assert result.strip().endswith("# End lines replaced")
+        assert "Successfully replaced" in result
+
+        assert mock_ctx.deps.yaml_content.strip().endswith("# End lines replaced")
 
     def test_replace_with_empty_string(self, mock_ctx, multiline_yaml_content):
         """Test replacing lines with empty content (deletion)."""
         mock_ctx.deps.yaml_content = multiline_yaml_content
         result = replace_manifest_lines(mock_ctx, 10, 15, "")
 
-        lines = result.split("\n")
+        assert "Successfully replaced" in result
+
+        lines = mock_ctx.deps.yaml_content.split("\n")
         assert "line 16" in lines[9]
 
     def test_replace_invalid_start_line(self, mock_ctx, sample_yaml_content):
         """Test error with invalid start_line."""
         mock_ctx.deps.yaml_content = sample_yaml_content
+        original_content = sample_yaml_content
         result = replace_manifest_lines(mock_ctx, 100, 101, "content")
         assert "Error: start_line" in result
         assert "out of range" in result
+        # yaml_content should not be modified
+        assert mock_ctx.deps.yaml_content == original_content
 
     def test_replace_end_before_start(self, mock_ctx, sample_yaml_content):
         """Test error with end_line before start_line."""
         mock_ctx.deps.yaml_content = sample_yaml_content
+        original_content = sample_yaml_content
         result = replace_manifest_lines(mock_ctx, 5, 3, "content")
         assert "Error: end_line" in result
         assert "before start_line" in result
+        # yaml_content should not be modified
+        assert mock_ctx.deps.yaml_content == original_content
 
     def test_replace_invalid_end_line(self, mock_ctx, sample_yaml_content):
         """Test error with invalid end_line."""
         mock_ctx.deps.yaml_content = sample_yaml_content
+        original_content = sample_yaml_content
         result = replace_manifest_lines(mock_ctx, 1, 100, "content")
         assert "Error: end_line" in result
         assert "out of range" in result
+        # yaml_content should not be modified
+        assert mock_ctx.deps.yaml_content == original_content
 
     def test_replace_no_content(self, mock_ctx):
         """Test error when no YAML content available."""
