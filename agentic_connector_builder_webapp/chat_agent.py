@@ -73,8 +73,4 @@ def get_connector_metadata(ctx: RunContext[SessionDeps]) -> str:
     if ctx.deps.test_list:
         metadata_parts.append(f"Test List: {ctx.deps.test_list}")
 
-    return (
-        "\n".join(metadata_parts)
-        if metadata_parts
-        else "No connector metadata has been configured yet."
-    )
+    return "\n".join(metadata_parts) or "No connector metadata has been configured yet."
