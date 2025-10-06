@@ -3,17 +3,18 @@
 import reflex as rx
 
 
-def chat_message(message: dict) -> rx.Component:
-    """Render a single chat message."""
-    is_user = message["role"] == "user"
+def chat_bubble(message_str, is_user: bool) -> rx.Component:
+    """Render a chat bubble."""
     return rx.card(
         rx.text(
-            message["content"],
+            message_str,
             size="2",
             color=rx.cond(is_user, "white", "gray.100"),
         ),
         background=rx.cond(is_user, "blue.500", "gray.800"),
         border="1px solid silver",
+        padding="20",
+        p="20",
         border_radius="16px",
         max_width="85%",
         align_self=rx.cond(is_user, "flex-end", "flex-start"),
@@ -24,23 +25,19 @@ def chat_message(message: dict) -> rx.Component:
     )
 
 
+def chat_message(message: dict) -> rx.Component:
+    """Render a single chat message."""
+    return chat_bubble(
+        message["content"],
+        is_user=message["role"] == "user",
+    )
+
+
 def streaming_message(content: str) -> rx.Component:
     """Render the currently streaming message."""
-    return rx.box(
-        rx.text(
-            content,
-            size="2",
-            color="gray.100",
-        ),
-        background="gray.800",
-        padding="4",
-        border_radius="16px",
-        max_width="85%",
-        align_self="flex-start",
-        margin_left="8px",
-        margin_right="auto",
-        margin_top="4px",
-        margin_bottom="4px",
+    return chat_bubble(
+        content + "\n\n ... ",
+        is_user=False,
     )
 
 
