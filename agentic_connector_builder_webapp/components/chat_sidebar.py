@@ -6,14 +6,14 @@ import reflex as rx
 def chat_message(message: dict) -> rx.Component:
     """Render a single chat message."""
     is_user = message["role"] == "user"
-    return rx.box(
+    return rx.card(
         rx.text(
             message["content"],
             size="2",
             color=rx.cond(is_user, "white", "gray.100"),
         ),
         background=rx.cond(is_user, "blue.500", "gray.800"),
-        padding="4",
+        border="1px solid silver",
         border_radius="16px",
         max_width="85%",
         align_self=rx.cond(is_user, "flex-end", "flex-start"),
@@ -84,7 +84,7 @@ def chat_sidebar(
         ),
         rx.form(
             rx.hstack(
-                rx.input(
+                rx.text_area(
                     placeholder="Ask me anything about connector building...",
                     value=input_value,
                     on_change=on_input_change,
