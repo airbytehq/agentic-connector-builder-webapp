@@ -11,11 +11,7 @@ from agentic_connector_builder_webapp.chat_agent import (
     replace_manifest_lines,
 )
 
-
-@pytest.fixture
-def sample_yaml_content():
-    """Sample YAML content for testing."""
-    return """name: test-connector
+SAMPLE_YAML = """name: test-connector
 version: "1.0.0"
 description: "A test connector"
 
@@ -26,20 +22,14 @@ destination:
   type: database
 """
 
-
-@pytest.fixture
-def multiline_yaml_content():
-    """Create YAML content with more lines for range testing."""
-    lines = [f"line {i}" for i in range(1, 21)]
-    return "\n".join(lines)
+MULTILINE_YAML = "\n".join([f"line {i}" for i in range(1, 21)])
 
 
-@pytest.fixture
-def mock_ctx():
-    """Create a mock RunContext with empty YAML content."""
+def create_mock_ctx(yaml_content=""):
+    """Create a mock RunContext with specified YAML content."""
     ctx = Mock()
     ctx.deps = SessionDeps(
-        yaml_content="",
+        yaml_content=yaml_content,
         connector_name="test-connector",
         source_api_name="TestAPI",
         documentation_urls="",
@@ -49,246 +39,329 @@ def mock_ctx():
     return ctx
 
 
-class TestGetManifestText:
-    """Test cases for get_manifest_text tool."""
+@pytest.mark.parametrize(
+    "yaml_content,with_line_numbers,start_line,end_line,expected_in_result,expected_not_in_result,expected_line_count",
+    [
+        pytest.param(
+            SAMPLE_YAML,
+            False,
+            None,
+            None,
+            ["name: test-connector", 'version: "1.0.0"', "source:"],
+            [],
+            None,
+            id="basic_read",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            True,
+            None,
+            None,
+            ["   1 |", "name: test-connector"],
+            [],
+            None,
+            id="with_line_numbers",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            False,
+            5,
+            10,
+            ["line 5", "line 10"],
+            [],
+            6,
+            id="line_range",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            False,
+            15,
+            None,
+            ["line 15", "line 20"],
+            [],
+            None,
+            id="start_line_only",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            False,
+            None,
+            5,
+            ["line 1", "line 5"],
+            [],
+            5,
+            id="end_line_only",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            True,
+            5,
+            8,
+            ["   5 |", "   8 |"],
+            ["   4 |", "   9 |"],
+            None,
+            id="line_numbers_with_range",
+        ),
+        pytest.param(
+            "",
+            False,
+            None,
+            None,
+            ["Error: No YAML content available"],
+            [],
+            None,
+            id="no_content",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            False,
+            100,
+            None,
+            ["Error: start_line", "out of range"],
+            [],
+            None,
+            id="invalid_start_line",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            False,
+            5,
+            3,
+            ["Error: end_line"],
+            [],
+            None,
+            id="invalid_end_line",
+        ),
+    ],
+)
+def test_get_manifest_text(
+    yaml_content,
+    with_line_numbers,
+    start_line,
+    end_line,
+    expected_in_result,
+    expected_not_in_result,
+    expected_line_count,
+):
+    """Test get_manifest_text with various parameters and edge cases."""
+    ctx = create_mock_ctx(yaml_content)
+    result = get_manifest_text(ctx, with_line_numbers, start_line, end_line)
 
-    def test_basic_read(self, mock_ctx, sample_yaml_content):
-        """Test reading manifest without line numbers."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        result = get_manifest_text(mock_ctx)
-        assert "name: test-connector" in result
-        assert 'version: "1.0.0"' in result
-        assert "source:" in result
+    for expected in expected_in_result:
+        assert expected in result
 
-    def test_with_line_numbers(self, mock_ctx, sample_yaml_content):
-        """Test reading manifest with line numbers."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        result = get_manifest_text(mock_ctx, with_line_numbers=True)
-        assert "   1 |" in result
-        assert "name: test-connector" in result
+    for not_expected in expected_not_in_result:
+        assert not_expected not in result
 
-    def test_line_range(self, mock_ctx, multiline_yaml_content):
-        """Test reading a specific line range."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = get_manifest_text(mock_ctx, start_line=5, end_line=10)
-        lines = result.split("\n")
-        assert len(lines) == 6
-        assert "line 5" in lines[0]
-        assert "line 10" in lines[5]
-
-    def test_start_line_only(self, mock_ctx, multiline_yaml_content):
-        """Test reading from start_line to end of content."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = get_manifest_text(mock_ctx, start_line=15)
-        lines = result.split("\n")
-        assert "line 15" in lines[0]
-        assert "line 20" in lines[-1]
-
-    def test_end_line_only(self, mock_ctx, multiline_yaml_content):
-        """Test reading from beginning to end_line."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = get_manifest_text(mock_ctx, end_line=5)
-        lines = result.split("\n")
-        assert len(lines) == 5
-        assert "line 1" in lines[0]
-        assert "line 5" in lines[4]
-
-    def test_line_numbers_with_range(self, mock_ctx, multiline_yaml_content):
-        """Test line numbers with a specific range."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = get_manifest_text(
-            mock_ctx,
-            with_line_numbers=True,
-            start_line=5,
-            end_line=8,
-        )
-        assert "   5 |" in result
-        assert "   8 |" in result
-        assert "   4 |" not in result
-        assert "   9 |" not in result
-
-    def test_no_content(self, mock_ctx):
-        """Test error when no YAML content available."""
-        mock_ctx.deps.yaml_content = ""
-        result = get_manifest_text(mock_ctx)
-        assert "Error: No YAML content available" in result
-
-    def test_invalid_start_line(self, mock_ctx, sample_yaml_content):
-        """Test error with invalid start_line."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        result = get_manifest_text(mock_ctx, start_line=100)
-        assert "Error: start_line" in result
-        assert "out of range" in result
-
-    def test_invalid_end_line(self, mock_ctx, sample_yaml_content):
-        """Test error with end_line before start_line."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        result = get_manifest_text(mock_ctx, start_line=5, end_line=3)
-        assert "Error: end_line" in result
-
-
-class TestInsertManifestLines:
-    """Test cases for insert_manifest_lines tool."""
-
-    def test_insert_at_beginning(self, mock_ctx, sample_yaml_content):
-        """Test inserting lines at the beginning of the content."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        result = insert_manifest_lines(mock_ctx, 1, "# New header comment")
-
-        assert "Successfully inserted" in result
-        assert "1 line(s)" in result
-
-        lines = mock_ctx.deps.yaml_content.split("\n")
-        assert lines[0] == "# New header comment"
-        assert lines[1] == "name: test-connector"
-
-    def test_insert_in_middle(self, mock_ctx, multiline_yaml_content):
-        """Test inserting lines in the middle of the content."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = insert_manifest_lines(mock_ctx, 10, "inserted line")
-
-        assert "Successfully inserted" in result
-
-        lines = mock_ctx.deps.yaml_content.split("\n")
-        assert "inserted line" in lines[9]
-        assert "line 10" in lines[10]
-
-    def test_insert_at_end(self, mock_ctx, multiline_yaml_content):
-        """Test inserting lines at the end of the content."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = insert_manifest_lines(mock_ctx, 100, "# End comment")
-
-        assert "Successfully inserted" in result
-
-        assert mock_ctx.deps.yaml_content.strip().endswith("# End comment")
-
-    def test_insert_multiline(self, mock_ctx, sample_yaml_content):
-        """Test inserting multiple lines at once."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        multiline_content = "# Comment 1\n# Comment 2\n# Comment 3"
-        result = insert_manifest_lines(mock_ctx, 1, multiline_content)
-
-        assert "Successfully inserted" in result
-        assert "3 line(s)" in result
-
-        lines = mock_ctx.deps.yaml_content.split("\n")
-        assert lines[0] == "# Comment 1"
-        assert lines[1] == "# Comment 2"
-        assert lines[2] == "# Comment 3"
-        assert lines[3] == "name: test-connector"
-
-    def test_insert_invalid_line_number(self, mock_ctx, sample_yaml_content):
-        """Test error with invalid line number."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        result = insert_manifest_lines(mock_ctx, 0, "content")
-        assert "Error: line_number must be >= 1" in result
-        # yaml_content should not be modified
-        assert mock_ctx.deps.yaml_content == sample_yaml_content
-
-    def test_insert_no_content(self, mock_ctx):
-        """Test error when no YAML content available."""
-        mock_ctx.deps.yaml_content = ""
-        result = insert_manifest_lines(mock_ctx, 1, "content")
-        assert "Error: No YAML content available" in result
+    if expected_line_count is not None:
+        assert len(result.split("\n")) == expected_line_count
 
 
-class TestReplaceManifestLines:
-    """Test cases for replace_manifest_lines tool."""
+@pytest.mark.parametrize(
+    "yaml_content,line_number,lines_to_insert,expected_in_result,expected_at_line,should_modify",
+    [
+        pytest.param(
+            SAMPLE_YAML,
+            1,
+            "# New header comment",
+            ["Successfully inserted", "1 line(s)"],
+            {0: "# New header comment", 1: "name: test-connector"},
+            True,
+            id="insert_at_beginning",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            10,
+            "inserted line",
+            ["Successfully inserted"],
+            {9: "inserted line", 10: "line 10"},
+            True,
+            id="insert_in_middle",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            100,
+            "# End comment",
+            ["Successfully inserted"],
+            {},
+            True,
+            id="insert_at_end",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            1,
+            "# Comment 1\n# Comment 2\n# Comment 3",
+            ["Successfully inserted", "3 line(s)"],
+            {
+                0: "# Comment 1",
+                1: "# Comment 2",
+                2: "# Comment 3",
+                3: "name: test-connector",
+            },
+            True,
+            id="insert_multiline",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            0,
+            "content",
+            ["Error: line_number must be >= 1"],
+            {},
+            False,
+            id="invalid_line_number",
+        ),
+        pytest.param(
+            "",
+            1,
+            "content",
+            ["Error: No YAML content available"],
+            {},
+            False,
+            id="no_content",
+        ),
+    ],
+)
+def test_insert_manifest_lines(
+    yaml_content,
+    line_number,
+    lines_to_insert,
+    expected_in_result,
+    expected_at_line,
+    should_modify,
+):
+    """Test insert_manifest_lines with various parameters and edge cases."""
+    ctx = create_mock_ctx(yaml_content)
+    original_content = yaml_content
+    result = insert_manifest_lines(ctx, line_number, lines_to_insert)
 
-    def test_replace_single_line(self, mock_ctx, multiline_yaml_content):
-        """Test replacing a single line."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = replace_manifest_lines(mock_ctx, 5, 5, "replaced line 5")
+    for expected in expected_in_result:
+        assert expected in result
 
-        assert "Successfully replaced" in result
-        assert "1 line(s)" in result
+    if should_modify:
+        assert ctx.deps.yaml_content != original_content
+        lines = ctx.deps.yaml_content.split("\n")
+        for line_idx, expected_text in expected_at_line.items():
+            assert expected_text in lines[line_idx]
+    else:
+        assert ctx.deps.yaml_content == original_content
 
-        lines = mock_ctx.deps.yaml_content.split("\n")
-        assert "replaced line 5" in lines[4]
-        assert "line 4" in lines[3]
-        assert "line 6" in lines[5]
 
-    def test_replace_multiple_lines(self, mock_ctx, multiline_yaml_content):
-        """Test replacing multiple consecutive lines."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = replace_manifest_lines(
-            mock_ctx,
+@pytest.mark.parametrize(
+    "yaml_content,start_line,end_line,new_lines,expected_in_result,expected_at_line,should_modify",
+    [
+        pytest.param(
+            MULTILINE_YAML,
+            5,
+            5,
+            "replaced line 5",
+            ["Successfully replaced", "1 line(s)"],
+            {3: "line 4", 4: "replaced line 5", 5: "line 6"},
+            True,
+            id="replace_single_line",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
             5,
             8,
             "replacement line 1\nreplacement line 2",
-        )
+            ["Successfully replaced", "4 line(s)", "2 new line(s)"],
+            {4: "replacement line 1", 5: "replacement line 2", 6: "line 9"},
+            True,
+            id="replace_multiple_lines",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            1,
+            2,
+            "# New header",
+            ["Successfully replaced"],
+            {0: "# New header", 1: 'description: "A test connector"'},
+            True,
+            id="replace_at_beginning",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            19,
+            20,
+            "# End lines replaced",
+            ["Successfully replaced"],
+            {},
+            True,
+            id="replace_at_end",
+        ),
+        pytest.param(
+            MULTILINE_YAML,
+            10,
+            15,
+            "",
+            ["Successfully replaced"],
+            {9: "line 16"},
+            True,
+            id="replace_with_empty_string",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            100,
+            101,
+            "content",
+            ["Error: start_line", "out of range"],
+            {},
+            False,
+            id="invalid_start_line",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            5,
+            3,
+            "content",
+            ["Error: end_line", "before start_line"],
+            {},
+            False,
+            id="end_before_start",
+        ),
+        pytest.param(
+            SAMPLE_YAML,
+            1,
+            100,
+            "content",
+            ["Error: end_line", "out of range"],
+            {},
+            False,
+            id="invalid_end_line",
+        ),
+        pytest.param(
+            "",
+            1,
+            2,
+            "content",
+            ["Error: No YAML content available"],
+            {},
+            False,
+            id="no_content",
+        ),
+    ],
+)
+def test_replace_manifest_lines(
+    yaml_content,
+    start_line,
+    end_line,
+    new_lines,
+    expected_in_result,
+    expected_at_line,
+    should_modify,
+):
+    """Test replace_manifest_lines with various parameters and edge cases."""
+    ctx = create_mock_ctx(yaml_content)
+    original_content = yaml_content
+    result = replace_manifest_lines(ctx, start_line, end_line, new_lines)
 
-        assert "Successfully replaced" in result
-        assert "4 line(s)" in result  # Replaced 4 lines (5-8)
-        assert "2 new line(s)" in result  # With 2 new lines
+    for expected in expected_in_result:
+        assert expected in result
 
-        lines = mock_ctx.deps.yaml_content.split("\n")
-        assert "replacement line 1" in lines[4]
-        assert "replacement line 2" in lines[5]
-        assert "line 9" in lines[6]
-
-    def test_replace_at_beginning(self, mock_ctx, sample_yaml_content):
-        """Test replacing lines at the beginning of the content."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        result = replace_manifest_lines(mock_ctx, 1, 2, "# New header")
-
-        assert "Successfully replaced" in result
-
-        lines = mock_ctx.deps.yaml_content.split("\n")
-        assert "# New header" in lines[0]
-        assert 'description: "A test connector"' in lines[1]
-
-    def test_replace_at_end(self, mock_ctx, multiline_yaml_content):
-        """Test replacing lines at the end of the content."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = replace_manifest_lines(mock_ctx, 19, 20, "# End lines replaced")
-
-        assert "Successfully replaced" in result
-
-        assert mock_ctx.deps.yaml_content.strip().endswith("# End lines replaced")
-
-    def test_replace_with_empty_string(self, mock_ctx, multiline_yaml_content):
-        """Test replacing lines with empty content (deletion)."""
-        mock_ctx.deps.yaml_content = multiline_yaml_content
-        result = replace_manifest_lines(mock_ctx, 10, 15, "")
-
-        assert "Successfully replaced" in result
-
-        lines = mock_ctx.deps.yaml_content.split("\n")
-        assert "line 16" in lines[9]
-
-    def test_replace_invalid_start_line(self, mock_ctx, sample_yaml_content):
-        """Test error with invalid start_line."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        original_content = sample_yaml_content
-        result = replace_manifest_lines(mock_ctx, 100, 101, "content")
-        assert "Error: start_line" in result
-        assert "out of range" in result
-        # yaml_content should not be modified
-        assert mock_ctx.deps.yaml_content == original_content
-
-    def test_replace_end_before_start(self, mock_ctx, sample_yaml_content):
-        """Test error with end_line before start_line."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        original_content = sample_yaml_content
-        result = replace_manifest_lines(mock_ctx, 5, 3, "content")
-        assert "Error: end_line" in result
-        assert "before start_line" in result
-        # yaml_content should not be modified
-        assert mock_ctx.deps.yaml_content == original_content
-
-    def test_replace_invalid_end_line(self, mock_ctx, sample_yaml_content):
-        """Test error with invalid end_line."""
-        mock_ctx.deps.yaml_content = sample_yaml_content
-        original_content = sample_yaml_content
-        result = replace_manifest_lines(mock_ctx, 1, 100, "content")
-        assert "Error: end_line" in result
-        assert "out of range" in result
-        # yaml_content should not be modified
-        assert mock_ctx.deps.yaml_content == original_content
-
-    def test_replace_no_content(self, mock_ctx):
-        """Test error when no YAML content available."""
-        mock_ctx.deps.yaml_content = ""
-        result = replace_manifest_lines(mock_ctx, 1, 2, "content")
-        assert "Error: No YAML content available" in result
+    if should_modify:
+        assert ctx.deps.yaml_content != original_content
+        lines = ctx.deps.yaml_content.split("\n")
+        for line_idx, expected_text in expected_at_line.items():
+            assert expected_text in lines[line_idx]
+    else:
+        assert ctx.deps.yaml_content == original_content
