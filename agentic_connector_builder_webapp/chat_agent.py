@@ -108,7 +108,8 @@ def get_manifest_text(
         end_line: If provided, only return lines up to and including this line (1-indexed)
 
     Returns:
-        The manifest YAML content as a string, optionally with line numbers
+        The manifest YAML content as a string, optionally with line numbers.
+        On error, returns a string starting with "Error:" describing the issue.
     """
     try:
         if not ctx.deps.yaml_content:
@@ -123,12 +124,13 @@ def get_manifest_text(
 
         if end_line is not None:
             effective_start = start_line if start_line is not None else 1
+            total_lines = len(ctx.deps.yaml_content.splitlines())
             if end_line < effective_start:
                 return (
                     f"Error: end_line {end_line} is before start_line {effective_start}"
                 )
             if end_line > len(lines) + (start_line - 1 if start_line else 0):
-                return f"Error: end_line {end_line} is out of range"
+                return f"Error: end_line {end_line} is out of range (content has {total_lines} lines)"
             lines_to_keep = end_line - effective_start + 1
             lines = lines[:lines_to_keep]
 
@@ -172,7 +174,8 @@ def insert_manifest_lines(
         lines: The content to insert (can contain multiple lines)
 
     Returns:
-        A confirmation message indicating success or describing any errors
+        A confirmation message indicating success.
+        On error, returns a string starting with "Error:" describing the issue.
     """
     try:
         if not ctx.deps.yaml_content:
@@ -225,7 +228,8 @@ def replace_manifest_lines(
         new_lines: The replacement content (can contain multiple lines)
 
     Returns:
-        A confirmation message indicating success or describing any errors
+        A confirmation message indicating success.
+        On error, returns a string starting with "Error:" describing the issue.
     """
     try:
         if not ctx.deps.yaml_content:
