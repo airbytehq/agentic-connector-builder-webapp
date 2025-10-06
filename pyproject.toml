@@ -15,6 +15,16 @@ dev = [
     "playwright>=1.40.0",
 ]
 
+[project.scripts]
+agentic-connector-builder-webapp = "agentic_connector_builder_webapp.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agentic_connector_builder_webapp"]
+
 [dependency-groups]
 dev = [
     "playwright>=1.54.0",
