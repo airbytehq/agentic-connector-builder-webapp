@@ -28,8 +28,15 @@ def main() -> None:
 
     cmd = ["reflex", "run"] + sys.argv[1:]
 
+    if cmd[0] != "reflex":
+        print(
+            "Error: Invalid command. Only 'reflex' command is allowed.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     try:
-        result = subprocess.run(cmd, cwd=app_dir)
+        result = subprocess.run(cmd, cwd=app_dir, shell=False, check=False)
         sys.exit(result.returncode)
     except FileNotFoundError:
         print(
