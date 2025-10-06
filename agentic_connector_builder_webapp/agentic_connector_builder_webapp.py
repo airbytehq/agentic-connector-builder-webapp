@@ -2,6 +2,7 @@
 
 import reflex as rx
 
+from .chat_agent import chat_agent
 from .components import chat_sidebar
 from .tabs import (
     code_tab_content,
@@ -91,8 +92,6 @@ transformations:
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
             return
-
-        from .chat_agent import chat_agent
 
         user_message = self.chat_input.strip()
         self.chat_messages.append({"role": "user", "content": user_message})
