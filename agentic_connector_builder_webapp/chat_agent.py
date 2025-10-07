@@ -1,11 +1,76 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.mcp import MCPServerStdio
+from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
+from pydantic_ai.tools import ToolDefinition
+
+MANIFEST_TOOLS = {
+    "execute_stream_test_read",
+    "validate_manifest",
+    "execute_record_counts_smoke_test",
+    "execute_dynamic_manifest_resolution_test",
+}
+
+
+async def prepare_mcp_tools(
+    ctx: RunContext["SessionDeps"],
+    tool_defs: list[ToolDefinition],
+) -> list[ToolDefinition]:
+    """Modify MCP tool schemas to make manifest optional.
+
+    This allows the LLM to call manifest-requiring tools without providing
+    the manifest parameter, which will be auto-injected during execution.
+    """
+    modified_tools = []
+
+    for tool_def in tool_defs:
+        if tool_def.name in MANIFEST_TOOLS:
+            schema = tool_def.parameters_json_schema.copy()
+
+            if "required" in schema and "manifest" in schema["required"]:
+                required = [r for r in schema["required"] if r != "manifest"]
+                schema["required"] = required
+
+            if "properties" in schema and "manifest" in schema["properties"]:
+                schema["properties"] = {**schema["properties"]}
+                schema["properties"]["manifest"] = {
+                    **schema["properties"]["manifest"],
+                    "description": (
+                        "Auto-provided from current YAML editor content. "
+                        "You do not need to provide this parameter."
+                    ),
+                }
+
+            modified_tools.append(
+                ToolDefinition(
+                    name=tool_def.name,
+                    description=tool_def.description,
+                    parameters_json_schema=schema,
+                    metadata=tool_def.metadata,
+                )
+            )
+        else:
+            modified_tools.append(tool_def)
+
+    return modified_tools
+
+
+async def process_tool_call(
+    ctx: RunContext["SessionDeps"],
+    call_tool: CallToolFunc,
+    name: str,
+    tool_args: dict[str, Any],
+) -> ToolResult:
+    """Inject yaml_content from deps into MCP tool calls that need manifest."""
+    if name in MANIFEST_TOOLS and ctx.deps:
+        if not tool_args.get("manifest"):
+            tool_args = {**tool_args, "manifest": ctx.deps.yaml_content}
+
+    return await call_tool(name, tool_args)
 
 
 @dataclass
@@ -26,7 +91,10 @@ mcp_server = MCPServerStdio(
         "airbyte-connector-builder-mcp",
     ],
     timeout=60 * 3,
+    process_tool_call=process_tool_call,
 )
+
+prepared_mcp_server = mcp_server.prepared(prepare_mcp_tools)
 
 chat_agent = Agent(
     "openai:gpt-4o-mini",
@@ -51,8 +119,17 @@ chat_agent = Agent(
         "5. When planning next actions, emit: '⚙️ Next, I'll [what you plan to do]...'\n"
         "   Example: '⚙️ Next, I'll validate the updated manifest to ensure all fields are correct.'\n\n"
         "Always include these status messages in your responses - they are required for all tool interactions."
+        "and connector metadata."
+        "\n\n"
+        "IMPORTANT: When using tools like validate_manifest, execute_stream_test_read, "
+        "execute_record_counts_smoke_test, and execute_dynamic_manifest_resolution_test, "
+        "you do NOT need to provide the 'manifest' parameter - it will be automatically "
+        "provided from the current YAML editor content. Just provide the other required "
+        "parameters like config, stream_name, etc."
+        "\n\n"
+        "Be concise and helpful."
     ),
-    toolsets=[mcp_server],
+    toolsets=[prepared_mcp_server],
 )
 
 
