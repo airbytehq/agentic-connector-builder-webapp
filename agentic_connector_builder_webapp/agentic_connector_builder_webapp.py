@@ -99,7 +99,7 @@ transformations:
         if not self.chat_input.strip():
             return
 
-        from .chat_agent import chat_agent
+        from .chat_agent import SessionDeps, chat_agent
 
         user_message = self.chat_input.strip()
         self.chat_messages.append({"role": "user", "content": user_message})
@@ -108,9 +108,20 @@ transformations:
         self.current_streaming_message = ""
         yield
 
+        session_deps = SessionDeps(
+            yaml_content=self.yaml_content,
+            connector_name=self.connector_name,
+            source_api_name=self.source_api_name,
+            documentation_urls=self.documentation_urls,
+            functional_requirements=self.functional_requirements,
+            test_list=self.test_list,
+        )
+
         try:
             async with chat_agent:
-                async with chat_agent.run_stream(user_message) as response:
+                async with chat_agent.run_stream(
+                    user_message, deps=session_deps
+                ) as response:
                     async for text in response.stream_text():
                         self.current_streaming_message = text
                         yield
@@ -119,6 +130,11 @@ transformations:
                     {"role": "assistant", "content": self.current_streaming_message}
                 )
                 self.current_streaming_message = ""
+
+                if session_deps.yaml_content != self.yaml_content:
+                    self.yaml_content = session_deps.yaml_content
+                    yield  # Trigger UI update for yaml_content change
+
         except Exception as e:
             self.chat_messages.append(
                 {
