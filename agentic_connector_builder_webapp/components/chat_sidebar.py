@@ -48,6 +48,7 @@ def chat_sidebar(
     loading,
     on_input_change,
     on_send,
+    on_keydown,
 ) -> rx.Component:
     """Create the fixed chat sidebar component."""
     return rx.vstack(
@@ -85,6 +86,7 @@ def chat_sidebar(
                     placeholder="Ask me anything about connector building...",
                     value=input_value,
                     on_change=on_input_change,
+                    on_key_down=on_keydown,
                     disabled=loading,
                     width="100%",
                     size="3",
