@@ -46,8 +46,11 @@ def chat_sidebar(
     current_streaming_message,
     input_value,
     loading,
+    agent_paused,
+    agent_running,
     on_input_change,
     on_send,
+    on_toggle_pause,
 ) -> rx.Component:
     """Create the fixed chat sidebar component."""
     return rx.vstack(
@@ -78,6 +81,18 @@ def chat_sidebar(
             ),
             flex="1",
             width="100%",
+        ),
+        rx.cond(
+            agent_running,
+            rx.button(
+                rx.cond(agent_paused, "▶️ Continue", "⏸ Pause"),
+                on_click=on_toggle_pause,
+                size="3",
+                width="100%",
+                variant="soft",
+                color_scheme=rx.cond(agent_paused, "green", "orange"),
+            ),
+            rx.fragment(),
         ),
         rx.form(
             rx.hstack(
