@@ -36,7 +36,6 @@ async def prepare_mcp_tools(
                 schema["required"] = required
 
             if "properties" in schema and "manifest" in schema["properties"]:
-                schema = {**schema}
                 schema["properties"] = {**schema["properties"]}
                 schema["properties"]["manifest"] = {
                     **schema["properties"]["manifest"],
@@ -68,7 +67,7 @@ async def process_tool_call(
 ) -> ToolResult:
     """Inject yaml_content from deps into MCP tool calls that need manifest."""
     if name in MANIFEST_TOOLS and ctx.deps:
-        if "manifest" not in tool_args or not tool_args.get("manifest"):
+        if not tool_args.get("manifest"):
             tool_args = {**tool_args, "manifest": ctx.deps.yaml_content}
 
     return await call_tool(name, tool_args)
