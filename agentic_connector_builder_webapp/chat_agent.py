@@ -8,7 +8,6 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
 from pydantic_ai.tools import ToolDefinition
 
-
 MANIFEST_TOOLS = {
     "execute_stream_test_read",
     "validate_manifest",
