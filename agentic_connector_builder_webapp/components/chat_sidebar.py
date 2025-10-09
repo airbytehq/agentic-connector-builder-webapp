@@ -89,11 +89,14 @@ def chat_sidebar(
                     width="100%",
                     size="3",
                 ),
-                rx.button(
-                    "Send",
-                    type="submit",
-                    loading=loading,
-                    size="3",
+                rx.tooltip(
+                    rx.button(
+                        "Send",
+                        type="submit",
+                        loading=loading,
+                        size="3",
+                    ),
+                    content="Press Cmd+Enter to send your message",
                 ),
                 width="100%",
             ),
