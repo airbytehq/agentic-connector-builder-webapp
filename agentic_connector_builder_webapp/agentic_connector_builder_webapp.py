@@ -1,7 +1,6 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
 import reflex as rx
-from reflex.event import EventHandler, KeyInputInfo
 
 from .components import chat_sidebar
 from .tabs import (
@@ -94,13 +93,6 @@ transformations:
     def set_chat_input(self, value: str):
         """Set the chat input value."""
         self.chat_input = value
-
-    def handle_chat_keydown(
-        self, key: str, key_info: KeyInputInfo
-    ) -> EventHandler | None:
-        """Handle keyboard events in chat input. Send message on Enter, allow newline on Shift+Enter."""
-        if key == "Enter" and not key_info["shift_key"]:
-            return ConnectorBuilderState.send_message.prevent_default
 
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
@@ -213,7 +205,6 @@ def index() -> rx.Component:
                 loading=ConnectorBuilderState.chat_loading,
                 on_input_change=ConnectorBuilderState.set_chat_input,
                 on_send=ConnectorBuilderState.send_message,
-                on_keydown=ConnectorBuilderState.handle_chat_keydown,
             ),
             position="fixed",
             left="0",
