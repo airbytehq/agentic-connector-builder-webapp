@@ -127,6 +127,10 @@ chat_agent = Agent(
         "provided from the current YAML editor content. Just provide the other required "
         "parameters like config, stream_name, etc."
         "\n\n"
+        "When you have completed the user's task successfully, call the report_success tool. "
+        "If you determine the task cannot be completed, call the report_failed tool. "
+        "Otherwise, continue working autonomously until the user pauses you."
+        "\n\n"
         "Be concise and helpful."
     ),
     toolsets=[prepared_mcp_server],
@@ -347,3 +351,31 @@ def replace_manifest_lines(
 
     except Exception as e:
         return f"Error replacing lines in manifest: {str(e)}"
+
+
+@chat_agent.tool
+def report_success(
+    ctx: RunContext[SessionDeps],
+    summary: Annotated[
+        str, Field(description="Summary of what was successfully completed")
+    ],
+) -> str:
+    """Report successful completion of the task.
+
+    Use this tool when you have successfully completed the user's request
+    and there is nothing more to do.
+    """
+    return f"✅ Task completed successfully: {summary}"
+
+
+@chat_agent.tool
+def report_failed(
+    ctx: RunContext[SessionDeps],
+    reason: Annotated[str, Field(description="Explanation of why the task failed")],
+) -> str:
+    """Report that the task cannot be completed.
+
+    Use this tool when you've determined that the user's request cannot
+    be fulfilled or you've encountered an unrecoverable error.
+    """
+    return f"❌ Task failed: {reason}"

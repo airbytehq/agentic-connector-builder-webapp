@@ -1,6 +1,17 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
+import asyncio
+import json
+from datetime import UTC, datetime
+
 import reflex as rx
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    UserPromptPart,
+)
 
 from .components import chat_sidebar
 from .tabs import (
@@ -48,10 +59,36 @@ transformations:
       email: email_address
 """
 
-    chat_messages: list[dict[str, str]] = []
+    chat_messages: list[ModelMessage] = []
     chat_input: str = ""
     current_streaming_message: str = ""
     chat_loading: bool = False
+    agent_paused: bool = False
+    agent_running: bool = False
+    agent_should_stop: bool = False
+
+    @rx.var
+    def display_messages(self) -> list[dict[str, str]]:
+        """Convert ModelMessage objects to simple dicts for UI display."""
+        result = []
+        for msg in self.chat_messages:
+            try:
+                if isinstance(msg, ModelRequest):
+                    content = msg.parts[0].content if msg.parts else ""
+                    result.append({"role": "user", "content": str(content)})
+                elif isinstance(msg, ModelResponse):
+                    content = ""
+                    for part in msg.parts:
+                        if hasattr(part, "content"):
+                            part_content = part.content
+                            if isinstance(part_content, (dict, list)):
+                                content += json.dumps(part_content, indent=2)
+                            else:
+                                content += str(part_content)
+                    result.append({"role": "assistant", "content": content})
+            except Exception:
+                continue
+        return result
 
     def get_content_length(self) -> int:
         """Get the content length."""
@@ -94,57 +131,113 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
+    async def toggle_pause(self):
+        """Toggle pause state for the agent."""
+        if self.agent_paused:
+            self.agent_paused = False
+            yield
+            async for _ in self._run_autonomous_loop():
+                yield
+        else:
+            self.agent_paused = True
+            yield
+
     async def send_message(self):
-        """Send a message to the chat agent and get streaming response."""
+        """Send a message to the chat agent and start autonomous loop."""
         if not self.chat_input.strip():
             return
 
-        from .chat_agent import SessionDeps, chat_agent
-
         user_message = self.chat_input.strip()
-        self.chat_messages.append({"role": "user", "content": user_message})
+
+        user_msg = ModelRequest(
+            parts=[UserPromptPart(content=user_message, timestamp=datetime.now(tz=UTC))]
+        )
+        self.chat_messages.append(user_msg)
         self.chat_input = ""
         self.chat_loading = True
+        self.agent_running = True
+        self.agent_paused = False
+        self.agent_should_stop = False
         self.current_streaming_message = ""
         yield
 
-        session_deps = SessionDeps(
-            yaml_content=self.yaml_content,
-            connector_name=self.connector_name,
-            source_api_name=self.source_api_name,
-            documentation_urls=self.documentation_urls,
-            functional_requirements=self.functional_requirements,
-            test_list=self.test_list,
-        )
+        async for _ in self._run_autonomous_loop():
+            yield
 
-        try:
-            async with chat_agent:
-                async with chat_agent.run_stream(
-                    user_message, deps=session_deps
-                ) as response:
-                    async for text in response.stream_text():
-                        self.current_streaming_message = text
-                        yield
+    async def _run_autonomous_loop(self):
+        """Run the agent in an autonomous loop until paused or stopped."""
+        from .chat_agent import SessionDeps, chat_agent
 
-                self.chat_messages.append(
-                    {"role": "assistant", "content": self.current_streaming_message}
-                )
-                self.current_streaming_message = ""
-
-                if session_deps.yaml_content != self.yaml_content:
-                    self.yaml_content = session_deps.yaml_content
-                    yield  # Trigger UI update for yaml_content change
-
-        except Exception as e:
-            self.chat_messages.append(
-                {
-                    "role": "assistant",
-                    "content": f"Sorry, I encountered an error: {str(e)}",
-                }
+        while not self.agent_paused and not self.agent_should_stop:
+            session_deps = SessionDeps(
+                yaml_content=self.yaml_content,
+                connector_name=self.connector_name,
+                source_api_name=self.source_api_name,
+                documentation_urls=self.documentation_urls,
+                functional_requirements=self.functional_requirements,
+                test_list=self.test_list,
             )
-            self.current_streaming_message = ""
-        finally:
-            self.chat_loading = False
+
+            try:
+                async with chat_agent:
+                    if len(self.chat_messages) == 1:
+                        prompt = self.chat_messages[0].parts[0].content
+                        message_history = []
+                    else:
+                        prompt = "Continue working on the task."
+                        message_history = self.chat_messages
+
+                    async with chat_agent.run_stream(
+                        prompt, message_history=message_history, deps=session_deps
+                    ) as response:
+                        async for text in response.stream_text():
+                            if self.agent_paused:
+                                break
+                            self.current_streaming_message = str(text)
+                            yield
+
+                        if not self.agent_paused:
+                            new_messages = response.new_messages()
+                            self.chat_messages.extend(new_messages)
+                            self.current_streaming_message = ""
+
+                            for msg in new_messages:
+                                if hasattr(msg, "parts"):
+                                    for part in msg.parts:
+                                        if hasattr(part, "content"):
+                                            content = str(part.content)
+                                            if (
+                                                "✅ Task completed successfully"
+                                                in content
+                                                or "❌ Task failed" in content
+                                            ):
+                                                self.agent_should_stop = True
+                                                break
+                                if self.agent_should_stop:
+                                    break
+
+                            if session_deps.yaml_content != self.yaml_content:
+                                self.yaml_content = session_deps.yaml_content
+
+                            yield
+
+            except Exception as e:
+                error_msg = f"Sorry, I encountered an error: {str(e)}"
+                error_response = ModelResponse(
+                    parts=[TextPart(error_msg)], timestamp=datetime.now(tz=UTC)
+                )
+                self.chat_messages.append(error_response)
+                self.current_streaming_message = ""
+                self.agent_should_stop = True
+                yield
+                break  # Exit loop on error
+
+            if not self.agent_paused and not self.agent_should_stop:
+                await asyncio.sleep(1.0)
+                yield  # Yield after sleep to maintain generator
+
+        self.chat_loading = False
+        self.agent_running = False
 
 
 def connector_builder_tabs() -> rx.Component:
@@ -199,12 +292,15 @@ def index() -> rx.Component:
     return rx.box(
         rx.box(
             chat_sidebar(
-                messages=ConnectorBuilderState.chat_messages,
+                messages=ConnectorBuilderState.display_messages,
                 current_streaming_message=ConnectorBuilderState.current_streaming_message,
                 input_value=ConnectorBuilderState.chat_input,
                 loading=ConnectorBuilderState.chat_loading,
+                agent_paused=ConnectorBuilderState.agent_paused,
+                agent_running=ConnectorBuilderState.agent_running,
                 on_input_change=ConnectorBuilderState.set_chat_input,
                 on_send=ConnectorBuilderState.send_message,
+                on_toggle_pause=ConnectorBuilderState.toggle_pause,
             ),
             position="fixed",
             left="0",
