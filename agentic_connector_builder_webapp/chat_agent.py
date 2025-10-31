@@ -2,9 +2,10 @@
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Annotated, Any, Callable
-from urllib.parse import quote_plus, urljoin, urlparse
+from typing import Annotated, Any
+from urllib.parse import quote_plus, urlparse
 from urllib.request import Request, urlopen
 
 from pydantic import Field
@@ -454,7 +455,6 @@ def create_chat_agent() -> Agent:
         Returns:
             A JSON string containing all current form field values.
         """
-        import json
 
         form_data = {
             "source_api_name": ctx.deps.source_api_name,
@@ -572,7 +572,10 @@ def create_chat_agent() -> Agent:
                     url_lower = url.lower()
                     text_lower = text.lower()
 
-                    if any(keyword in url_lower or keyword in text_lower for keyword in doc_keywords):
+                    if any(
+                        keyword in url_lower or keyword in text_lower
+                        for keyword in doc_keywords
+                    ):
                         found_urls.append(url)
                         seen_domains.add(domain)
 
