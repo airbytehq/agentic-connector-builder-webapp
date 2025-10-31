@@ -105,9 +105,7 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
-    def _convert_to_pydantic_history(
-        self, messages: list[dict[str, str]]
-    ) -> list:
+    def _convert_to_pydantic_history(self, messages: list[dict[str, str]]) -> list:
         """Convert chat messages to PydanticAI message format.
 
         Args:
@@ -130,9 +128,13 @@ transformations:
                 content = msg.get("content", "")
 
                 if role == "user":
-                    history.append(ModelRequest(parts=[UserPromptPart(content=content)]))
+                    history.append(
+                        ModelRequest(parts=[UserPromptPart(content=content)])
+                    )
                 elif role == "assistant":
-                    history.append(ModelResponse(parts=[TextPart(content=content)], timestamp=None))
+                    history.append(
+                        ModelResponse(parts=[TextPart(content=content)], timestamp=None)
+                    )
             except Exception as e:
                 print(f"Warning: Failed to convert message to PydanticAI format: {e}")
                 continue
@@ -173,6 +175,7 @@ transformations:
 
     _cached_agent = None
     _cached_api_key = None
+
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
