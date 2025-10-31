@@ -1,5 +1,6 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated, Any
 
@@ -77,18 +78,6 @@ async def process_tool_call(
 class SessionDeps:
     """Dependencies containing the current webapp session state."""
 
-    yaml_content: str
-    connector_name: str
-    source_api_name: str
-    documentation_urls: str
-    functional_requirements: str
-    test_list: str
-from typing import Annotated, Any, Callable
-
-@dataclass
-class SessionDeps:
-    """Dependencies containing the current webapp session state."""
-    
     yaml_content: str
     connector_name: str
     source_api_name: str
@@ -395,7 +384,9 @@ def create_chat_agent() -> Agent:
                 ctx.deps.set_source_api_name(api_name)
                 return f"Successfully set the Source API Name to '{api_name}' in the requirements form."
             else:
-                return "Error: Unable to update Source API Name (callback not available)"
+                return (
+                    "Error: Unable to update Source API Name (callback not available)"
+                )
         except Exception as e:
             return f"Error setting API name: {str(e)}"
 
