@@ -399,7 +399,7 @@ def index() -> rx.Component:
                         has_api_key=ConnectorBuilderState.has_api_key,
                         on_click=ConnectorBuilderState.open_settings_modal,
                     ),
-                    justify="space-between",
+                    justify="between",
                     align="center",
                     width="100%",
                 ),
