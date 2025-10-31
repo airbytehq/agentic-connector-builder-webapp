@@ -4,6 +4,7 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum
 from typing import Annotated, Any
 from urllib.parse import quote_plus, urlparse
 from urllib.request import Request, urlopen
@@ -12,6 +13,21 @@ from pydantic import Field
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
 from pydantic_ai.tools import ToolDefinition
+
+
+class FormField(str, Enum):
+    """Enum representing editable form fields in the requirements form."""
+
+    source_api_name = "source_api_name"
+    connector_name = "connector_name"
+    documentation_urls = "documentation_urls"
+    functional_requirements = "functional_requirements"
+    test_list = "test_list"
+
+
+FORM_FIELD_DESC = (
+    "The form field to update. One of: " + ", ".join(f.value for f in FormField)
+)
 
 MANIFEST_TOOLS = {
     "execute_stream_test_read",
@@ -125,7 +141,7 @@ SYSTEM_PROMPT = (
     "Use get_form_fields anytime you need to check the current state of the form.\n\n"
     "FORM FIELD TOOLS:\n"
     "- get_form_fields: Check current values of all form fields\n"
-    "- update_form_field: Update any form field (source_api_name, connector_name, documentation_urls, functional_requirements, test_list)\n"
+    "- update_form_field: Update any form field using FormField enum (source_api_name, connector_name, documentation_urls, functional_requirements, test_list)\n"
     "- set_api_name: Specific tool for setting the API name\n"
     "- set_connector_name: Specific tool for setting the connector name\n"
     "- search_documentation_urls: Search the web for API documentation URLs\n\n"
@@ -457,25 +473,19 @@ def create_chat_agent() -> Agent:
         Returns:
             A JSON string containing all current form field values.
         """
-
         form_data = {
-            "source_api_name": ctx.deps.source_api_name,
-            "connector_name": ctx.deps.connector_name,
-            "documentation_urls": ctx.deps.documentation_urls,
-            "functional_requirements": ctx.deps.functional_requirements,
-            "test_list": ctx.deps.test_list,
+            FormField.source_api_name.value: ctx.deps.source_api_name,
+            FormField.connector_name.value: ctx.deps.connector_name,
+            FormField.documentation_urls.value: ctx.deps.documentation_urls,
+            FormField.functional_requirements.value: ctx.deps.functional_requirements,
+            FormField.test_list.value: ctx.deps.test_list,
         }
         return json.dumps(form_data, indent=2)
 
     @agent.tool
     def update_form_field(
         ctx: RunContext[SessionDeps],
-        field_name: Annotated[
-            str,
-            Field(
-                description="The name of the field to update. Must be one of: source_api_name, connector_name, documentation_urls, functional_requirements, test_list"
-            ),
-        ],
+        field_name: Annotated[FormField, Field(description=FORM_FIELD_DESC)],
         value: Annotated[str, Field(description="The new value for the field")],
     ) -> str:
         """Update a single form field in the requirements form.
@@ -485,32 +495,29 @@ def create_chat_agent() -> Agent:
 
         Args:
             ctx: Runtime context with session dependencies
-            field_name: The name of the field to update
+            field_name: The form field to update
             value: The new value for the field
 
         Returns:
             A confirmation message indicating success or an error message.
         """
-        field_setters = {
-            "source_api_name": ctx.deps.set_source_api_name,
-            "connector_name": ctx.deps.set_connector_name,
-            "documentation_urls": ctx.deps.set_documentation_urls,
-            "functional_requirements": ctx.deps.set_functional_requirements,
-            "test_list": ctx.deps.set_test_list,
+        field_setters: dict[FormField, Callable[[str], Any] | None] = {
+            FormField.source_api_name: ctx.deps.set_source_api_name,
+            FormField.connector_name: ctx.deps.set_connector_name,
+            FormField.documentation_urls: ctx.deps.set_documentation_urls,
+            FormField.functional_requirements: ctx.deps.set_functional_requirements,
+            FormField.test_list: ctx.deps.set_test_list,
         }
 
-        if field_name not in field_setters:
-            return f"Error: Invalid field name '{field_name}'. Must be one of: {', '.join(field_setters.keys())}"
-
-        setter = field_setters[field_name]
+        setter = field_setters.get(field_name)
         if not setter:
-            return f"Error: Setter for '{field_name}' is not available"
+            return f"Error: Setter for '{field_name.value}' is not available"
 
         try:
             setter(value)
-            return f"Successfully updated '{field_name}' in the requirements form."
+            return f"Successfully updated '{field_name.value}' in the requirements form."
         except Exception as e:
-            return f"Error updating '{field_name}': {str(e)}"
+            return f"Error updating '{field_name.value}': {str(e)}"
 
     @agent.tool
     def search_documentation_urls(
