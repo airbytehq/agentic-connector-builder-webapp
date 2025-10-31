@@ -246,10 +246,10 @@ transformations:
         if self.chat_loading:
             return
 
-        modifiers = kwargs.get('kwargs', {})
-        ctrl_key = modifiers.get('ctrl_key', False)
-        meta_key = modifiers.get('meta_key', False)
-        shift_key = modifiers.get('shift_key', False)
+        modifiers = kwargs.get("kwargs", {})
+        ctrl_key = modifiers.get("ctrl_key", False)
+        meta_key = modifiers.get("meta_key", False)
+        shift_key = modifiers.get("shift_key", False)
 
         should_submit = False
 
