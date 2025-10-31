@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from typing import Any
 
 import reflex as rx
 from dotenv import load_dotenv
@@ -181,9 +182,9 @@ transformations:
         """Check if an API key is available from environment variables (not UI input)."""
         return bool(os.environ.get("OPENAI_API_KEY", ""))
 
-    _cached_agent = None
-    _cached_api_key = None
-    _agent_started = False
+    _cached_agent: Any = None
+    _cached_api_key: str | None = None
+    _agent_started: bool = False
 
     async def _ensure_agent_started(self, effective_api_key: str):
         """Ensure the agent context is started and MCP server is running.
@@ -194,33 +195,33 @@ transformations:
         from .chat_agent import create_chat_agent
 
         if (
-            ConnectorBuilderState._cached_agent is not None
-            and ConnectorBuilderState._cached_api_key != effective_api_key
+            self._cached_agent is not None
+            and self._cached_api_key != effective_api_key
         ):
             try:
-                await ConnectorBuilderState._cached_agent.__aexit__(None, None, None)
+                await self._cached_agent.__aexit__(None, None, None)
             except Exception as e:
                 print(
                     f"[_ensure_agent_started] Error during agent cleanup when API key changed: {e}"
                 )
-            ConnectorBuilderState._cached_agent = None
-            ConnectorBuilderState._agent_started = False
+            self._cached_agent = None
+            self._agent_started = False
 
-        if ConnectorBuilderState._cached_agent is None:
-            ConnectorBuilderState._cached_agent = create_chat_agent()
-            ConnectorBuilderState._cached_api_key = effective_api_key
-            ConnectorBuilderState._agent_started = False
+        if self._cached_agent is None:
+            self._cached_agent = create_chat_agent()
+            self._cached_api_key = effective_api_key
+            self._agent_started = False
 
-        if not ConnectorBuilderState._agent_started:
+        if not self._agent_started:
             try:
-                await ConnectorBuilderState._cached_agent.__aenter__()
-                ConnectorBuilderState._agent_started = True
+                await self._cached_agent.__aenter__()
+                self._agent_started = True
             except Exception as e:
                 print(
                     f"[_ensure_agent_started] Error starting agent context for MCP server: {e}"
                 )
-                ConnectorBuilderState._cached_agent = None
-                ConnectorBuilderState._agent_started = False
+                self._cached_agent = None
+                self._agent_started = False
                 raise
 
     async def send_message(self):
@@ -259,7 +260,7 @@ transformations:
                 os.environ["OPENAI_API_KEY"] = effective_api_key
 
             await self._ensure_agent_started(effective_api_key)
-            agent = ConnectorBuilderState._cached_agent
+            agent = self._cached_agent
 
             async with agent.run_stream(
                 user_message, deps=session_deps, message_history=message_history
