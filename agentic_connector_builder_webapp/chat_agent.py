@@ -424,4 +424,73 @@ def create_chat_agent() -> Agent:
         except Exception as e:
             return f"Error setting connector name: {str(e)}"
 
+    @agent.tool
+    def get_form_fields(ctx: RunContext[SessionDeps]) -> str:
+        """Get the current values of all form fields in the requirements form.
+
+        Use this tool to check what values are currently set in the form fields.
+        This is useful when you need to know the current state before making updates.
+
+        Args:
+            ctx: Runtime context with session dependencies
+
+        Returns:
+            A JSON string containing all current form field values.
+        """
+        import json
+
+        form_data = {
+            "source_api_name": ctx.deps.source_api_name,
+            "connector_name": ctx.deps.connector_name,
+            "documentation_urls": ctx.deps.documentation_urls,
+            "functional_requirements": ctx.deps.functional_requirements,
+            "test_list": ctx.deps.test_list,
+        }
+        return json.dumps(form_data, indent=2)
+
+    @agent.tool
+    def update_form_field(
+        ctx: RunContext[SessionDeps],
+        field_name: Annotated[
+            str,
+            Field(
+                description="The name of the field to update. Must be one of: source_api_name, connector_name, documentation_urls, functional_requirements, test_list"
+            ),
+        ],
+        value: Annotated[str, Field(description="The new value for the field")],
+    ) -> str:
+        """Update a single form field in the requirements form.
+
+        This is a generic tool that can update any of the whitelisted form fields.
+        Use this when you need to update form fields dynamically.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            field_name: The name of the field to update
+            value: The new value for the field
+
+        Returns:
+            A confirmation message indicating success or an error message.
+        """
+        field_setters = {
+            "source_api_name": ctx.deps.set_source_api_name,
+            "connector_name": ctx.deps.set_connector_name,
+            "documentation_urls": ctx.deps.set_documentation_urls,
+            "functional_requirements": ctx.deps.set_functional_requirements,
+            "test_list": ctx.deps.set_test_list,
+        }
+
+        if field_name not in field_setters:
+            return f"Error: Invalid field name '{field_name}'. Must be one of: {', '.join(field_setters.keys())}"
+
+        setter = field_setters[field_name]
+        if not setter:
+            return f"Error: Setter for '{field_name}' is not available"
+
+        try:
+            setter(value)
+            return f"Successfully updated '{field_name}' in the requirements form."
+        except Exception as e:
+            return f"Error updating '{field_name}': {str(e)}"
+
     return agent
