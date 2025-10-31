@@ -269,9 +269,7 @@ transformations:
                     if isinstance(final_output, str):
                         self.current_streaming_message = final_output
                 except Exception as e:
-                    print(
-                        f"[send_message] get_output failed: {type(e).__name__}: {e}"
-                    )
+                    print(f"[send_message] get_output failed: {type(e).__name__}: {e}")
 
             self.chat_messages.append(
                 {"role": "assistant", "content": self.current_streaming_message}
