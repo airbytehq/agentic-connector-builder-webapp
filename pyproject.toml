@@ -8,7 +8,7 @@ dependencies = [
     "reflex",
     "reflex-monaco",
     "pydantic-ai",
-    "duckduckgo-search",
+    "ddgs",
     "python-dotenv>=1.1.1",
 ]
 
