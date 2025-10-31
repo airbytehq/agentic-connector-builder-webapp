@@ -132,6 +132,11 @@ transformations:
         """Check if an API key is configured (either from env var or UI input)."""
         return bool(self.get_effective_api_key())
 
+    @rx.var
+    def has_env_api_key(self) -> bool:
+        """Check if an API key is available from environment variables (not UI input)."""
+        return bool(os.environ.get("OPENAI_API_KEY", ""))
+
     _cached_agent = None
     _cached_api_key = None
 
@@ -319,6 +324,7 @@ def index() -> rx.Component:
         settings_modal(
             is_open=ConnectorBuilderState.settings_modal_open,
             openai_api_key=ConnectorBuilderState.openai_api_key_input,
+            has_env_api_key=ConnectorBuilderState.has_env_api_key,
             on_open_change=ConnectorBuilderState.close_settings_modal,
             on_api_key_change=ConnectorBuilderState.set_openai_api_key_input,
             on_save=ConnectorBuilderState.save_settings,

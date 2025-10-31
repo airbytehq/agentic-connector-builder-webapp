@@ -6,6 +6,7 @@ import reflex as rx
 def settings_modal(
     is_open: bool,
     openai_api_key: str,
+    has_env_api_key: bool,
     on_open_change: callable,
     on_api_key_change: callable,
     on_save: callable,
@@ -15,6 +16,7 @@ def settings_modal(
     Args:
         is_open: Whether the modal is open
         openai_api_key: Current API key value
+        has_env_api_key: Whether an API key is available from environment variables
         on_open_change: Callback when modal open state changes
         on_api_key_change: Callback when API key input changes
         on_save: Callback when save button is clicked
@@ -31,6 +33,21 @@ def settings_modal(
                 mb="4",
             ),
             rx.flex(
+                rx.cond(
+                    has_env_api_key,
+                    rx.callout.root(
+                        rx.callout.icon(
+                            rx.icon("circle-check"),
+                        ),
+                        rx.callout.text(
+                            "An API key is already configured from your environment variables or .env file. You can optionally provide a different key below to override it for this session.",
+                        ),
+                        color_scheme="green",
+                        size="1",
+                        mb="3",
+                    ),
+                    rx.fragment(),
+                ),
                 rx.text(
                     "OpenAI API Key",
                     as_="div",
