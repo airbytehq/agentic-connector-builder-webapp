@@ -1,8 +1,10 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
 import os
+from pathlib import Path
 
 import reflex as rx
+from dotenv import load_dotenv
 
 from .components import chat_sidebar, settings_button, settings_modal
 from .tabs import (
@@ -11,6 +13,10 @@ from .tabs import (
     requirements_tab_content,
     save_publish_tab_content,
 )
+
+env_file = Path.cwd() / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
 
 SIDEBAR_WIDTH_PERCENT = "33.333%"
 MAIN_CONTENT_WIDTH_PERCENT = "66.667%"
