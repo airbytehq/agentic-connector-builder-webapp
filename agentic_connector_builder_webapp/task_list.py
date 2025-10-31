@@ -20,17 +20,22 @@ class Task(BaseModel):
 
     task_type: str = Field(description="Type of task (connector or stream)")
     id: str = Field(description="Unique identifier for the task")
-    title: str = Field(description="Title/description of the task")
+    task_name: str = Field(description="Short name/title of the task")
+    description: str | None = Field(
+        default=None,
+        description="Optional longer description with additional context/instructions",
+    )
     status: TaskStatus = Field(
         default=TaskStatus.NOT_STARTED, description="Current status of the task"
     )
-    details: str | None = Field(
-        default=None, description="Optional additional details about the task"
-    )
+
+    def model_post_init(self, __context: Any) -> None:
+        """Handle backward compatibility for old field names."""
+        pass
 
     def __str__(self) -> str:
         """Return string representation of the task."""
-        return self.title
+        return self.task_name
 
 
 class ConnectorTask(Task):
@@ -47,7 +52,7 @@ class StreamTask(Task):
 
     def __str__(self) -> str:
         """Return string representation with stream name."""
-        return f"{self.stream_name}: {self.title}"
+        return f"{self.stream_name}: {self.task_name}"
 
 
 class TaskList(BaseModel):
@@ -113,28 +118,45 @@ class TaskList(BaseModel):
 
 
 def create_default_connector_task_list() -> TaskList:
-    """Create the default task list for new connector creation.
+    """Create the default BuildNewConnector task list.
 
-    This includes the bare minimum tasks to create and fully test a connector.
+    This workflow guides the user through the essential steps of building a new connector.
     """
     task_list = TaskList(
-        name="New Connector Development",
-        description="Essential tasks for creating and testing a new connector",
+        name="Build New Connector",
+        description="Workflow for building and testing a new connector from scratch",
     )
 
     tasks = [
-        ("define_requirements", "Define connector requirements and specifications"),
-        ("create_manifest", "Create initial connector manifest YAML"),
-        ("configure_streams", "Configure data streams and schemas"),
-        ("implement_authentication", "Implement authentication mechanism"),
-        ("validate_manifest", "Validate connector manifest"),
-        ("test_connection", "Test connection to data source"),
-        ("test_streams", "Test stream reading and data extraction"),
-        ("verify_data_quality", "Verify data quality and transformations"),
+        (
+            "collect-info",
+            "Collect information from user",
+            "Gather requirements, API details, authentication info, and user expectations",
+        ),
+        (
+            "research-api",
+            "Research and analyze source API",
+            "Study API documentation, endpoints, rate limits, and data structures",
+        ),
+        (
+            "first-stream-tasks",
+            "Enumerate streams and create first stream's tasks",
+            "Identify all available streams and create detailed tasks for implementing the first stream",
+        ),
+        (
+            "readiness-pass-1",
+            "Run connector readiness report",
+            "Execute readiness check. If issues exist, go back and fix them. Otherwise, create tasks for remaining streams that were enumerated",
+        ),
+        (
+            "readiness-pass-2",
+            "Run connector readiness report",
+            "Execute final readiness check and create new tasks based on findings",
+        ),
     ]
 
-    for task_id, title in tasks:
-        task = ConnectorTask(id=task_id, title=title)
+    for task_id, task_name, description in tasks:
+        task = ConnectorTask(id=task_id, task_name=task_name, description=description)
         task_list.add_task(task)
 
     return task_list

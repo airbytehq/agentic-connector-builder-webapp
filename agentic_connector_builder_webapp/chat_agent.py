@@ -433,7 +433,7 @@ def create_chat_agent() -> Agent:
         and understand what work has been completed or is in progress.
 
         Returns:
-            A formatted string showing all tasks with their IDs, titles, and statuses.
+            A formatted string showing all tasks with their IDs, names, and statuses.
         """
         try:
             if not ctx.deps.task_list_json:
@@ -458,11 +458,11 @@ def create_chat_agent() -> Agent:
                     TaskStatus.FAILED: "✗",
                 }.get(task.status, "?")
 
-                task_info = f"{i}. [{status_icon}] {task.title} (ID: {task.id}, Status: {task.status.value})"
+                task_info = f"{i}. [{status_icon}] {task.task_name} (ID: {task.id}, Status: {task.status.value})"
                 if isinstance(task, StreamTask):
                     task_info += f" [Stream: {task.stream_name}]"
-                if task.details:
-                    task_info += f"\n   Details: {task.details}"
+                if task.description:
+                    task_info += f"\n   Description: {task.description}"
                 result.append(task_info)
 
             return "\n".join(result)
@@ -474,9 +474,10 @@ def create_chat_agent() -> Agent:
     def add_connector_task(
         ctx: RunContext[SessionDeps],
         task_id: Annotated[str, Field(description="Unique identifier for the task")],
-        title: Annotated[str, Field(description="Title/description of the task")],
-        details: Annotated[
-            str | None, Field(description="Optional additional details")
+        task_name: Annotated[str, Field(description="Short name/title of the task")],
+        description: Annotated[
+            str | None,
+            Field(description="Optional longer description with additional context"),
         ] = None,
     ) -> str:
         """Add a new connector task to the end of the task list.
@@ -487,8 +488,8 @@ def create_chat_agent() -> Agent:
         Args:
             ctx: Runtime context with session dependencies
             task_id: Unique identifier for the task
-            title: Title/description of the task
-            details: Optional additional details about the task
+            task_name: Short name/title of the task
+            description: Optional longer description with additional context
 
         Returns:
             A confirmation message indicating success.
@@ -498,11 +499,13 @@ def create_chat_agent() -> Agent:
                 return "Error: No task list has been initialized yet."
 
             task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
-            task = ConnectorTask(id=task_id, title=title, details=details)
+            task = ConnectorTask(
+                id=task_id, task_name=task_name, description=description
+            )
             task_list.add_task(task)
             ctx.deps.task_list_json = task_list.model_dump_json()
 
-            return f"Successfully added connector task '{title}' (ID: {task_id}) to the task list."
+            return f"Successfully added connector task '{task_name}' (ID: {task_id}) to the task list."
 
         except Exception as e:
             return f"Error adding connector task: {str(e)}"
@@ -511,12 +514,13 @@ def create_chat_agent() -> Agent:
     def add_stream_task(
         ctx: RunContext[SessionDeps],
         task_id: Annotated[str, Field(description="Unique identifier for the task")],
-        title: Annotated[str, Field(description="Title/description of the task")],
+        task_name: Annotated[str, Field(description="Short name/title of the task")],
         stream_name: Annotated[
             str, Field(description="Name of the stream this task relates to")
         ],
-        details: Annotated[
-            str | None, Field(description="Optional additional details")
+        description: Annotated[
+            str | None,
+            Field(description="Optional longer description with additional context"),
         ] = None,
     ) -> str:
         """Add a new stream-specific task to the end of the task list.
@@ -526,9 +530,9 @@ def create_chat_agent() -> Agent:
         Args:
             ctx: Runtime context with session dependencies
             task_id: Unique identifier for the task
-            title: Title/description of the task
+            task_name: Short name/title of the task
             stream_name: Name of the stream this task relates to
-            details: Optional additional details about the task
+            description: Optional longer description with additional context
 
         Returns:
             A confirmation message indicating success.
@@ -539,12 +543,15 @@ def create_chat_agent() -> Agent:
 
             task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
             task = StreamTask(
-                id=task_id, title=title, stream_name=stream_name, details=details
+                id=task_id,
+                task_name=task_name,
+                stream_name=stream_name,
+                description=description,
             )
             task_list.add_task(task)
             ctx.deps.task_list_json = task_list.model_dump_json()
 
-            return f"Successfully added stream task '{title}' (ID: {task_id}) for stream '{stream_name}' to the task list."
+            return f"Successfully added stream task '{task_name}' (ID: {task_id}) for stream '{stream_name}' to the task list."
 
         except Exception as e:
             return f"Error adding stream task: {str(e)}"
@@ -556,9 +563,10 @@ def create_chat_agent() -> Agent:
             int, Field(description="Position to insert at (0-indexed, 0 = first)")
         ],
         task_id: Annotated[str, Field(description="Unique identifier for the task")],
-        title: Annotated[str, Field(description="Title/description of the task")],
-        details: Annotated[
-            str | None, Field(description="Optional additional details")
+        task_name: Annotated[str, Field(description="Short name/title of the task")],
+        description: Annotated[
+            str | None,
+            Field(description="Optional longer description with additional context"),
         ] = None,
     ) -> str:
         """Insert a new connector task at a specific position in the task list.
@@ -570,8 +578,8 @@ def create_chat_agent() -> Agent:
             ctx: Runtime context with session dependencies
             position: Position to insert at (0-indexed, 0 = first position)
             task_id: Unique identifier for the task
-            title: Title/description of the task
-            details: Optional additional details about the task
+            task_name: Short name/title of the task
+            description: Optional longer description with additional context
 
         Returns:
             A confirmation message indicating success.
@@ -581,11 +589,13 @@ def create_chat_agent() -> Agent:
                 return "Error: No task list has been initialized yet."
 
             task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
-            task = ConnectorTask(id=task_id, title=title, details=details)
+            task = ConnectorTask(
+                id=task_id, task_name=task_name, description=description
+            )
             task_list.insert_task(position, task)
             ctx.deps.task_list_json = task_list.model_dump_json()
 
-            return f"Successfully inserted connector task '{title}' (ID: {task_id}) at position {position}."
+            return f"Successfully inserted connector task '{task_name}' (ID: {task_id}) at position {position}."
 
         except Exception as e:
             return f"Error inserting connector task: {str(e)}"
@@ -597,12 +607,13 @@ def create_chat_agent() -> Agent:
             int, Field(description="Position to insert at (0-indexed, 0 = first)")
         ],
         task_id: Annotated[str, Field(description="Unique identifier for the task")],
-        title: Annotated[str, Field(description="Title/description of the task")],
+        task_name: Annotated[str, Field(description="Short name/title of the task")],
         stream_name: Annotated[
             str, Field(description="Name of the stream this task relates to")
         ],
-        details: Annotated[
-            str | None, Field(description="Optional additional details")
+        description: Annotated[
+            str | None,
+            Field(description="Optional longer description with additional context"),
         ] = None,
     ) -> str:
         """Insert a new stream-specific task at a specific position in the task list.
@@ -614,9 +625,9 @@ def create_chat_agent() -> Agent:
             ctx: Runtime context with session dependencies
             position: Position to insert at (0-indexed, 0 = first position)
             task_id: Unique identifier for the task
-            title: Title/description of the task
+            task_name: Short name/title of the task
             stream_name: Name of the stream this task relates to
-            details: Optional additional details about the task
+            description: Optional longer description with additional context
 
         Returns:
             A confirmation message indicating success.
@@ -627,12 +638,15 @@ def create_chat_agent() -> Agent:
 
             task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
             task = StreamTask(
-                id=task_id, title=title, stream_name=stream_name, details=details
+                id=task_id,
+                task_name=task_name,
+                stream_name=stream_name,
+                description=description,
             )
             task_list.insert_task(position, task)
             ctx.deps.task_list_json = task_list.model_dump_json()
 
-            return f"Successfully inserted stream task '{title}' (ID: {task_id}) for stream '{stream_name}' at position {position}."
+            return f"Successfully inserted stream task '{task_name}' (ID: {task_id}) for stream '{stream_name}' at position {position}."
 
         except Exception as e:
             return f"Error inserting stream task: {str(e)}"

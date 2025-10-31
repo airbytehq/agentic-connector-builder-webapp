@@ -223,8 +223,8 @@ transformations:
                 result.append(
                     {
                         "id": task.id,
-                        "title": task.title,
-                        "details": task.details or "",
+                        "title": task.task_name,
+                        "details": task.description or "",
                         "status": status,
                         "icon": icon,
                         "color": color,
@@ -256,8 +256,8 @@ transformations:
                     {
                         "id": task.id,
                         "stream_name": task.stream_name,
-                        "title": task.title,
-                        "details": task.details or "",
+                        "title": task.task_name,
+                        "details": task.description or "",
                         "status": status,
                         "icon": icon,
                         "color": color,
