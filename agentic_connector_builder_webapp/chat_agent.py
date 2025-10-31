@@ -1,8 +1,7 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable
 
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
