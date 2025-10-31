@@ -1,16 +1,14 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
 import json
-import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Annotated, Any
-from urllib.parse import quote_plus, urlparse
-from urllib.request import Request, urlopen
 
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
 from pydantic_ai.tools import ToolDefinition
 
@@ -134,17 +132,18 @@ SYSTEM_PROMPT = (
     "When a user tells you what API they want to build a connector for, you MUST complete ALL of these steps in your FIRST response:\n"
     "1. Use set_api_name to set the API name (e.g., 'JSONPlaceholder API')\n"
     "2. Use set_connector_name to set the connector name (e.g., 'source-jsonplaceholder')\n"
-    "3. Use search_documentation_urls to find documentation URLs for the API\n"
-    "4. Use update_form_field to populate the documentation_urls field with the found URLs\n"
-    "CRITICAL: Execute ALL FOUR steps above automatically. Do NOT ask the user if they want documentation URLs - just search for and populate them automatically.\n"
-    "After completing all four steps, you can ask what the user wants to do next.\n"
+    "3. Use duckduckgo_search to search for '[API name] official documentation' or '[API name] API reference'\n"
+    "4. Extract official documentation URLs from the search results (prefer docs.*, developer.*, api.* domains)\n"
+    "5. Use update_form_field with FormField.documentation_urls to populate the documentation URLs (newline-delimited)\n"
+    "CRITICAL: Execute ALL FIVE steps above automatically. Do NOT ask the user if they want documentation URLs - just search for and populate them automatically.\n"
+    "After completing all five steps, you can ask what the user wants to do next.\n"
     "Use get_form_fields anytime you need to check the current state of the form.\n\n"
     "FORM FIELD TOOLS:\n"
     "- get_form_fields: Check current values of all form fields\n"
     "- update_form_field: Update any form field using FormField enum (source_api_name, connector_name, documentation_urls, functional_requirements, test_list)\n"
     "- set_api_name: Specific tool for setting the API name\n"
     "- set_connector_name: Specific tool for setting the connector name\n"
-    "- search_documentation_urls: Search the web for API documentation URLs\n\n"
+    "- duckduckgo_search: Search the web using DuckDuckGo. Use this to find official API documentation URLs. Prefer official docs domains (docs.*, developer.*, api.*) and extract URLs from results.\n\n"
     "IMPORTANT: You MUST emit status messages when using tools. These messages help users "
     "understand what you're doing:\n\n"
     "1. Acknowledge the user's request before you start.\n"
@@ -181,6 +180,7 @@ def create_chat_agent() -> Agent:
         "openai:gpt-4o-mini",
         deps_type=SessionDeps,
         system_prompt=SYSTEM_PROMPT,
+        tools=[duckduckgo_search_tool()],
         toolsets=[prepared_mcp_server],
     )
 
@@ -520,87 +520,5 @@ def create_chat_agent() -> Agent:
             )
         except Exception as e:
             return f"Error updating '{field_name.value}': {str(e)}"
-
-    @agent.tool
-    def search_documentation_urls(
-        ctx: RunContext[SessionDeps],
-        api_name: Annotated[
-            str, Field(description="The name of the API to search documentation for")
-        ],
-    ) -> str:
-        """Search for documentation URLs for a given API.
-
-        This tool searches the web for official documentation URLs for the specified API.
-        It returns a newline-delimited list of relevant documentation URLs that can be
-        used to populate the documentation_urls field.
-
-        Args:
-            ctx: Runtime context with session dependencies
-            api_name: The name of the API (e.g., "JSONPlaceholder API", "GitHub API")
-
-        Returns:
-            A newline-delimited string of documentation URLs, or an error message.
-        """
-        try:
-            search_query = f"{api_name} API documentation"
-            encoded_query = quote_plus(search_query)
-            search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
-
-            req = Request(
-                search_url,
-                headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                },
-            )
-
-            with urlopen(req, timeout=10) as response:
-                html_content = response.read().decode("utf-8", errors="replace")
-
-            url_pattern = re.compile(
-                r'<a[^>]+class="result__url"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>'
-            )
-            matches = url_pattern.findall(html_content)
-
-            doc_keywords = [
-                "docs",
-                "documentation",
-                "developer",
-                "api",
-                "reference",
-                "guide",
-            ]
-            found_urls = []
-            seen_domains = set()
-
-            for url, text in matches[:20]:
-                try:
-                    parsed = urlparse(url)
-                    domain = parsed.netloc.lower()
-
-                    if domain in seen_domains:
-                        continue
-
-                    url_lower = url.lower()
-                    text_lower = text.lower()
-
-                    if any(
-                        keyword in url_lower or keyword in text_lower
-                        for keyword in doc_keywords
-                    ):
-                        found_urls.append(url)
-                        seen_domains.add(domain)
-
-                    if len(found_urls) >= 5:
-                        break
-                except Exception:
-                    continue
-
-            if found_urls:
-                return "\n".join(found_urls)
-            else:
-                return f"No documentation URLs found for '{api_name}'. You may need to search manually or ask the user for documentation links."
-
-        except Exception as e:
-            return f"Error searching for documentation URLs: {str(e)}. You may need to ask the user to provide documentation links manually."
 
     return agent
