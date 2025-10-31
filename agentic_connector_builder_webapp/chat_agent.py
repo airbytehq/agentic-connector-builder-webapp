@@ -359,6 +359,3 @@ def create_chat_agent() -> Agent:
             return f"Error replacing lines in manifest: {str(e)}"
 
     return agent
-
-
-chat_agent = create_chat_agent()
