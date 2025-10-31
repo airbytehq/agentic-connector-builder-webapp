@@ -116,7 +116,6 @@ SYSTEM_PROMPT = (
     "5. When planning next actions, emit: '⚙️ Next, I'll [what you plan to do]...'\n"
     "   Example: '⚙️ Next, I'll validate the updated manifest to ensure all fields are correct.'\n\n"
     "Always include these status messages in your responses - they are required for all tool interactions."
-    "and connector metadata."
     "\n\n"
     "IMPORTANT: When using tools like validate_manifest, execute_stream_test_read, "
     "execute_record_counts_smoke_test, and execute_dynamic_manifest_resolution_test, "
