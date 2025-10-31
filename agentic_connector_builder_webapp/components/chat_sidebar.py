@@ -101,7 +101,7 @@ def chat_sidebar(
                     }
                 }
             }
-            
+
             // Use MutationObserver to detect when messages change
             const chatContainer = document.getElementById('chat-messages-container');
             if (chatContainer) {
@@ -110,7 +110,7 @@ def chat_sidebar(
                 });
                 observer.observe(chatContainer, { childList: true, subtree: true });
             }
-            
+
             // Also scroll on initial load
             setTimeout(scrollChatToBottom, 100);
             """
