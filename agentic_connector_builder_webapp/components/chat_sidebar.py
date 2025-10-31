@@ -81,39 +81,43 @@ def chat_sidebar(
                     streaming_message(current_streaming_message),
                     rx.fragment(),
                 ),
+                rx.box(id="chat-bottom-sentinel", height="1px"),
                 spacing="3",
                 width="100%",
                 id="chat-messages-container",
             ),
             flex="1",
             width="100%",
-            id="chat-scroll-area",
         ),
         rx.script(
             """
-            // Auto-scroll chat to bottom when messages update
-            function scrollChatToBottom() {
-                const scrollArea = document.getElementById('chat-scroll-area');
-                if (scrollArea) {
-                    const viewport = scrollArea.querySelector('[data-radix-scroll-area-viewport]');
-                    if (viewport) {
-                        viewport.scrollTop = viewport.scrollHeight;
+            window.__chat_auto_scroll_init ||= (function(){
+                const scroll = () => {
+                    if (!window.__chat_auto_scroll) return;
+                    const el = document.getElementById('chat-bottom-sentinel');
+                    if (el) {
+                        el.scrollIntoView({block:'end'});
                     }
+                };
+                const container = document.getElementById('chat-messages-container');
+                if (container) {
+                    new MutationObserver(scroll).observe(container, {
+                        childList: true,
+                        characterData: true,
+                        subtree: true
+                    });
                 }
-            }
-
-            // Use MutationObserver to detect when messages change
-            const chatContainer = document.getElementById('chat-messages-container');
-            if (chatContainer) {
-                const observer = new MutationObserver(() => {
-                    scrollChatToBottom();
-                });
-                observer.observe(chatContainer, { childList: true, subtree: true });
-            }
-
-            // Also scroll on initial load
-            setTimeout(scrollChatToBottom, 100);
+                window.addEventListener('resize', scroll);
+                return true;
+            })();
             """
+        ),
+        rx.cond(
+            loading,
+            rx.script(
+                "window.__chat_auto_scroll = true; requestAnimationFrame(()=>{document.getElementById('chat-bottom-sentinel')?.scrollIntoView({block:'end'})});"
+            ),
+            rx.script("window.__chat_auto_scroll = false;"),
         ),
         rx.form(
             rx.hstack(
