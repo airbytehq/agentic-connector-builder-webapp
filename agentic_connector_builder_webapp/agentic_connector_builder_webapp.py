@@ -94,6 +94,40 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
+    def _convert_to_pydantic_history(
+        self, messages: list[dict[str, str]]
+    ) -> list:
+        """Convert chat messages to PydanticAI message format.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content' keys
+
+        Returns:
+            List of ModelRequest/ModelResponse objects for PydanticAI
+        """
+        from pydantic_ai.messages import (
+            ModelRequest,
+            ModelResponse,
+            TextPart,
+            UserPromptPart,
+        )
+
+        history = []
+        for msg in messages:
+            try:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+
+                if role == "user":
+                    history.append(ModelRequest(parts=[UserPromptPart(content=content)]))
+                elif role == "assistant":
+                    history.append(ModelResponse(parts=[TextPart(content=content)], timestamp=None))
+            except Exception as e:
+                print(f"Warning: Failed to convert message to PydanticAI format: {e}")
+                continue
+
+        return history
+
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
@@ -117,14 +151,24 @@ transformations:
             test_list=self.test_list,
         )
 
+        recent_messages = self.chat_messages[:-1][-20:]
+        message_history = self._convert_to_pydantic_history(recent_messages)
+
         try:
             async with chat_agent:
                 async with chat_agent.run_stream(
-                    user_message, deps=session_deps
+                    user_message, deps=session_deps, message_history=message_history
                 ) as response:
                     async for text in response.stream_text():
                         self.current_streaming_message = text
                         yield
+
+                    try:
+                        final_output = await response.get_output()
+                        if isinstance(final_output, str):
+                            self.current_streaming_message = final_output
+                    except Exception:
+                        pass
 
                 self.chat_messages.append(
                     {"role": "assistant", "content": self.current_streaming_message}
