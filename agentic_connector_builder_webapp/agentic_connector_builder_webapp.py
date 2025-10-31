@@ -194,10 +194,7 @@ transformations:
         """
         from .chat_agent import create_chat_agent
 
-        if (
-            self._cached_agent is not None
-            and self._cached_api_key != effective_api_key
-        ):
+        if self._cached_agent is not None and self._cached_api_key != effective_api_key:
             try:
                 await self._cached_agent.__aexit__(None, None, None)
             except Exception as e:
