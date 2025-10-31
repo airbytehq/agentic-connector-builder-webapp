@@ -220,14 +220,16 @@ transformations:
                     "completed": ("●", "green.400"),
                     "failed": ("✗", "red.400"),
                 }.get(status, ("?", "gray.400"))
-                result.append({
-                    "id": task.id,
-                    "title": task.title,
-                    "details": task.details or "",
-                    "status": status,
-                    "icon": icon,
-                    "color": color,
-                })
+                result.append(
+                    {
+                        "id": task.id,
+                        "title": task.title,
+                        "details": task.details or "",
+                        "status": status,
+                        "icon": icon,
+                        "color": color,
+                    }
+                )
             return result
         except Exception:
             return []
@@ -250,15 +252,17 @@ transformations:
                     "completed": ("●", "green.400"),
                     "failed": ("✗", "red.400"),
                 }.get(status, ("?", "gray.400"))
-                result.append({
-                    "id": task.id,
-                    "stream_name": task.stream_name,
-                    "title": task.title,
-                    "details": task.details or "",
-                    "status": status,
-                    "icon": icon,
-                    "color": color,
-                })
+                result.append(
+                    {
+                        "id": task.id,
+                        "stream_name": task.stream_name,
+                        "title": task.title,
+                        "details": task.details or "",
+                        "status": status,
+                        "icon": icon,
+                        "color": color,
+                    }
+                )
             result.sort(key=lambda r: (r["stream_name"], r["title"]))
             return result
         except Exception:

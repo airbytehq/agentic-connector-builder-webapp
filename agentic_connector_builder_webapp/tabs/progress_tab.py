@@ -51,7 +51,9 @@ def progress_tab_content() -> rx.Component:
                                     rx.text(task["title"], font_weight="500"),
                                     rx.cond(
                                         task["details"],
-                                        rx.text(task["details"], color="gray.500", size="2"),
+                                        rx.text(
+                                            task["details"], color="gray.500", size="2"
+                                        ),
                                         rx.fragment(),
                                     ),
                                     spacing="1",
@@ -94,11 +96,17 @@ def progress_tab_content() -> rx.Component:
                                             )
                                         ),
                                         rx.table.cell(
-                                            rx.text(task["stream_name"], font_weight="500")
+                                            rx.text(
+                                                task["stream_name"], font_weight="500"
+                                            )
                                         ),
                                         rx.table.cell(rx.text(task["title"])),
                                         rx.table.cell(
-                                            rx.text(task["details"], color="gray.500", size="2")
+                                            rx.text(
+                                                task["details"],
+                                                color="gray.500",
+                                                size="2",
+                                            )
                                         ),
                                     ),
                                 )
