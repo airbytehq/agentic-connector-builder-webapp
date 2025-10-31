@@ -398,7 +398,7 @@ def index() -> rx.Component:
                     rx.flex(
                         rx.link(
                             rx.image(
-                                src="https://docs.airbyte.com/img/pyairbyte-logo-dark.png",
+                                src="https://docs.airbyte.com/img/pyairbyte-logo-light.png",
                                 alt="Airbyte Logo",
                                 height="40px",
                                 width="auto",
@@ -407,7 +407,7 @@ def index() -> rx.Component:
                             is_external=True,
                         ),
                         rx.heading(
-                            "Agentic Connector Builder",
+                            "Connector Builder",
                             size="9",
                             text_align="center",
                         ),
