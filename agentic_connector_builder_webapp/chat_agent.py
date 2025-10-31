@@ -1,13 +1,31 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum
 from typing import Annotated, Any
 
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
 from pydantic_ai.tools import ToolDefinition
+
+
+class FormField(str, Enum):
+    """Enum representing editable form fields in the requirements form."""
+
+    source_api_name = "source_api_name"
+    connector_name = "connector_name"
+    documentation_urls = "documentation_urls"
+    functional_requirements = "functional_requirements"
+    test_list = "test_list"
+
+
+FORM_FIELD_DESC = "The form field to update. One of: " + ", ".join(
+    f.value for f in FormField
+)
 
 MANIFEST_TOOLS = {
     "execute_stream_test_read",
@@ -86,6 +104,9 @@ class SessionDeps:
     test_list: str
     set_source_api_name: Callable[[str], Any] | None = None
     set_connector_name: Callable[[str], Any] | None = None
+    set_documentation_urls: Callable[[str], Any] | None = None
+    set_functional_requirements: Callable[[str], Any] | None = None
+    set_test_list: Callable[[str], Any] | None = None
 
 
 mcp_server = MCPServerStdio(
@@ -107,6 +128,22 @@ SYSTEM_PROMPT = (
     "testing streams, generating scaffolds, and more. You can also access "
     "the current state of the user's work including their YAML configuration "
     "and connector metadata. Be concise and helpful.\n\n"
+    "WORKFLOW FOR NEW CONNECTORS:\n"
+    "When a user tells you what API they want to build a connector for, you MUST complete ALL of these steps in your FIRST response:\n"
+    "1. Use set_api_name to set the API name (e.g., 'JSONPlaceholder API')\n"
+    "2. Use set_connector_name to set the connector name (e.g., 'source-jsonplaceholder')\n"
+    "3. Use duckduckgo_search to search for '[API name] official documentation' or '[API name] API reference'\n"
+    "4. Extract official documentation URLs from the search results (prefer docs.*, developer.*, api.* domains)\n"
+    "5. Use update_form_field with FormField.documentation_urls to populate the documentation URLs (newline-delimited)\n"
+    "CRITICAL: Execute ALL FIVE steps above automatically. Do NOT ask the user if they want documentation URLs - just search for and populate them automatically.\n"
+    "After completing all five steps, you can ask what the user wants to do next.\n"
+    "Use get_form_fields anytime you need to check the current state of the form.\n\n"
+    "FORM FIELD TOOLS:\n"
+    "- get_form_fields: Check current values of all form fields\n"
+    "- update_form_field: Update any form field using FormField enum (source_api_name, connector_name, documentation_urls, functional_requirements, test_list)\n"
+    "- set_api_name: Specific tool for setting the API name\n"
+    "- set_connector_name: Specific tool for setting the connector name\n"
+    "- duckduckgo_search: Search the web using DuckDuckGo. Use this to find official API documentation URLs. Prefer official docs domains (docs.*, developer.*, api.*) and extract URLs from results.\n\n"
     "IMPORTANT: You MUST emit status messages when using tools. These messages help users "
     "understand what you're doing:\n\n"
     "1. Acknowledge the user's request before you start.\n"
@@ -143,6 +180,7 @@ def create_chat_agent() -> Agent:
         "openai:gpt-4o-mini",
         deps_type=SessionDeps,
         system_prompt=SYSTEM_PROMPT,
+        tools=[duckduckgo_search_tool()],
         toolsets=[prepared_mcp_server],
     )
 
@@ -421,5 +459,66 @@ def create_chat_agent() -> Agent:
                 return "Error: Unable to update Connector Name (callback not available)"
         except Exception as e:
             return f"Error setting connector name: {str(e)}"
+
+    @agent.tool
+    def get_form_fields(ctx: RunContext[SessionDeps]) -> str:
+        """Get the current values of all form fields in the requirements form.
+
+        Use this tool to check what values are currently set in the form fields.
+        This is useful when you need to know the current state before making updates.
+
+        Args:
+            ctx: Runtime context with session dependencies
+
+        Returns:
+            A JSON string containing all current form field values.
+        """
+        form_data = {
+            FormField.source_api_name.value: ctx.deps.source_api_name,
+            FormField.connector_name.value: ctx.deps.connector_name,
+            FormField.documentation_urls.value: ctx.deps.documentation_urls,
+            FormField.functional_requirements.value: ctx.deps.functional_requirements,
+            FormField.test_list.value: ctx.deps.test_list,
+        }
+        return json.dumps(form_data, indent=2)
+
+    @agent.tool
+    def update_form_field(
+        ctx: RunContext[SessionDeps],
+        field_name: Annotated[FormField, Field(description=FORM_FIELD_DESC)],
+        value: Annotated[str, Field(description="The new value for the field")],
+    ) -> str:
+        """Update a single form field in the requirements form.
+
+        This is a generic tool that can update any of the whitelisted form fields.
+        Use this when you need to update form fields dynamically.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            field_name: The form field to update
+            value: The new value for the field
+
+        Returns:
+            A confirmation message indicating success or an error message.
+        """
+        field_setters: dict[FormField, Callable[[str], Any] | None] = {
+            FormField.source_api_name: ctx.deps.set_source_api_name,
+            FormField.connector_name: ctx.deps.set_connector_name,
+            FormField.documentation_urls: ctx.deps.set_documentation_urls,
+            FormField.functional_requirements: ctx.deps.set_functional_requirements,
+            FormField.test_list: ctx.deps.set_test_list,
+        }
+
+        setter = field_setters.get(field_name)
+        if not setter:
+            return f"Error: Setter for '{field_name.value}' is not available"
+
+        try:
+            setter(value)
+            return (
+                f"Successfully updated '{field_name.value}' in the requirements form."
+            )
+        except Exception as e:
+            return f"Error updating '{field_name.value}': {str(e)}"
 
     return agent

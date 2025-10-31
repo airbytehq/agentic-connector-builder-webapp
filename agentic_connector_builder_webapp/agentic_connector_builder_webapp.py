@@ -121,6 +121,26 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
+    def set_source_api_name(self, value: str):
+        """Set the source API name."""
+        self.source_api_name = value
+
+    def set_connector_name(self, value: str):
+        """Set the connector name."""
+        self.connector_name = value
+
+    def set_documentation_urls(self, value: str):
+        """Set the documentation URLs."""
+        self.documentation_urls = value
+
+    def set_functional_requirements(self, value: str):
+        """Set the functional requirements."""
+        self.functional_requirements = value
+
+    def set_test_list(self, value: str):
+        """Set the test list."""
+        self.test_list = value
+
     def _convert_to_pydantic_history(
         self, messages: list[dict[str, str]]
     ) -> list[ModelMessage]:
@@ -244,6 +264,9 @@ transformations:
             test_list=self.test_list,
             set_source_api_name=self.set_source_api_name,
             set_connector_name=self.set_connector_name,
+            set_documentation_urls=self.set_documentation_urls,
+            set_functional_requirements=self.set_functional_requirements,
+            set_test_list=self.set_test_list,
         )
 
         recent_messages = self.chat_messages[:-1][-HISTORY_MAX_MESSAGES:]
