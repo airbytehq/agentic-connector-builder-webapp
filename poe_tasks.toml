@@ -1,3 +1,7 @@
 [tasks]
 
 run = "reflex run"
+
+docs-generate = { script = "docs.generate:run", help = "Generate API documentation using pdoc" }
+
+docs-preview = { shell = "poe docs-generate && python -m http.server 8080 --directory docs/generated", help = "Generate and preview documentation locally" }
