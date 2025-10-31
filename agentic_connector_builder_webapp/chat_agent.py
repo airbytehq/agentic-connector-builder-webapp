@@ -174,7 +174,10 @@ def create_chat_agent() -> Agent:
         if ctx.deps.test_list:
             metadata_parts.append(f"Test List: {ctx.deps.test_list}")
 
-        return "\n".join(metadata_parts) or "No connector metadata has been configured yet."
+        return (
+            "\n".join(metadata_parts)
+            or "No connector metadata has been configured yet."
+        )
 
     @agent.tool
     def get_manifest_text(
@@ -224,9 +227,7 @@ def create_chat_agent() -> Agent:
                 effective_start = start_line if start_line is not None else 1
                 total_lines = len(ctx.deps.yaml_content.splitlines())
                 if end_line < effective_start:
-                    return (
-                        f"Error: end_line {end_line} is before start_line {effective_start}"
-                    )
+                    return f"Error: end_line {end_line} is before start_line {effective_start}"
                 if end_line > len(lines) + (start_line - 1 if start_line else 0):
                     return f"Error: end_line {end_line} is out of range (content has {total_lines} lines)"
                 lines_to_keep = end_line - effective_start + 1
@@ -253,7 +254,9 @@ def create_chat_agent() -> Agent:
                 description="Line number where to insert content (1-indexed). Content is inserted BEFORE this line."
             ),
         ],
-        lines: Annotated[str, Field(description="Content to insert. Can be multi-line.")],
+        lines: Annotated[
+            str, Field(description="Content to insert. Can be multi-line.")
+        ],
     ) -> str:
         """Insert new lines into the current manifest YAML at a specific position.
 
