@@ -447,8 +447,11 @@ app = rx.App(
         appearance="dark",
         has_background=True,
         radius="medium",
-        accent_color="blue",
-    )
+        accent_color="violet",  # Changed from blue to violet to match Airbyte purple
+    ),
+    stylesheets=[
+        "/airbyte.css",
+    ],
 )
 
 # Add the main page

@@ -1,0 +1,129 @@
+/*
+ * Airbyte Brand Styling for Agentic Connector Builder WebApp
+ * 
+ * This stylesheet applies Airbyte branding to the Reflex web application.
+ * Colors and design tokens are sourced from the main Airbyte documentation site.
+ * 
+ * Primary source: https://github.com/airbytehq/airbyte/blob/main/docusaurus/src/css/custom.css
+ * The Airbyte design system uses a purple primary color (#615eff) and Inter font family.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap");
+
+:root {
+  /* Airbyte Primary Colors */
+  --airbyte-primary: #615eff;
+  --airbyte-primary-dark: #3f3bff;
+  --airbyte-primary-darker: #2e2aff;
+  --airbyte-primary-darkest: #0500f4;
+  --airbyte-primary-light: #8381ff;
+  --airbyte-primary-lighter: #9492ff;
+  --airbyte-primary-lightest: #c8c7ff;
+  
+  /* Airbyte Color Palette */
+  --color-white: hsl(0, 0%, 100%);
+  --color-grey-40: hsl(240, 25%, 98%);
+  --color-grey-100: hsl(240, 12%, 92%);
+  --color-grey-400: hsl(239, 10%, 59%);
+  --color-grey-500: hsl(240, 10%, 49%);
+  --color-grey-900: hsl(240, 19%, 18%);
+  --color-green-40: hsl(185, 76%, 97%);
+  --color-green-50: hsl(184, 67%, 92%);
+  --color-green-600: hsl(185, 100%, 35%);
+  --color-green-800: hsl(184, 100%, 26%);
+  --color-blue-30: hsl(240, 100%, 98%);
+  --color-dark-blue-40: hsl(230, 23%, 95%);
+  --color-dark-blue-700: hsl(236, 43%, 31%);
+}
+
+/* Dark mode colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --airbyte-primary: #7976ff;
+    --airbyte-primary-dark: #3f3bff;
+    --airbyte-primary-darker: #2e2aff;
+    --airbyte-primary-light: #8381ff;
+    --airbyte-primary-lighter: #9492ff;
+    --airbyte-primary-lightest: #c8c7ff;
+    
+    --color-grey-40: hsl(240, 14%, 14%);
+    --color-grey-100: hsl(240, 15%, 15%);
+    --color-grey-400: hsl(240, 13%, 72%);
+    --color-grey-500: hsl(240, 10%, 70%);
+    --color-grey-900: hsl(240, 10%, 90%);
+    --color-green-50: hsl(184, 100%, 12%);
+    --color-blue-30: hsl(252, 25%, 18%);
+    --color-dark-blue-700: hsl(240, 100%, 98%);
+    --color-white: hsl(0, 0%, 16%);
+  }
+}
+
+/* Apply Inter font family - Airbyte's brand font */
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+/* Apply Airbyte purple to links */
+a {
+  color: var(--airbyte-primary) !important;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--airbyte-primary-light) !important;
+}
+
+/* Style buttons with Airbyte purple */
+button:not(.rt-reset) {
+  background-color: var(--airbyte-primary) !important;
+  border-color: var(--airbyte-primary) !important;
+  transition: background-color 0.2s ease;
+}
+
+button:not(.rt-reset):hover {
+  background-color: var(--airbyte-primary-dark) !important;
+  border-color: var(--airbyte-primary-dark) !important;
+}
+
+/* Style input fields with Airbyte focus ring */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: var(--airbyte-primary) !important;
+  box-shadow: 0 0 0 3px var(--airbyte-primary-lightest) !important;
+}
+
+/* Enhanced heading styles */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600 !important;
+}
+
+/* Style tabs with Airbyte purple */
+[role="tab"][data-state="active"] {
+  color: var(--airbyte-primary) !important;
+  border-bottom-color: var(--airbyte-primary) !important;
+}
+
+/* Style the main heading with Airbyte purple accent */
+.rt-Heading {
+  color: var(--airbyte-primary-lighter) !important;
+}
+
+/* Improve spacing and readability */
+.rt-Text {
+  line-height: 1.6;
+}
+
+/* Style code blocks */
+code, pre {
+  border-radius: 8px;
+  background-color: var(--color-blue-30) !important;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+}
