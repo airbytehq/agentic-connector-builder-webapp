@@ -81,11 +81,77 @@ def chat_sidebar(
                     streaming_message(current_streaming_message),
                     rx.fragment(),
                 ),
+                rx.box(id="chat-bottom-sentinel", height="1px"),
                 spacing="3",
                 width="100%",
+                id="chat-messages-container",
             ),
             flex="1",
             width="100%",
+        ),
+        rx.script(
+            """
+            (function(){
+                if (!window.__chat_auto_scroll_init) {
+                    function scrollToBottom() {
+                        if (!window.__chat_auto_scroll) return;
+                        var el = document.getElementById('chat-bottom-sentinel');
+                        if (el && el.scrollIntoView) {
+                            el.scrollIntoView({ block: 'end' });
+                        }
+                    }
+
+                    function attachObserver() {
+                        var container = document.getElementById('chat-messages-container');
+                        if (!container) return false;
+
+                        if (window.__chat_auto_scroll_observer) {
+                            try { window.__chat_auto_scroll_observer.disconnect(); } catch (e) {}
+                        }
+                        var observer = new MutationObserver(function() {
+                            scrollToBottom();
+                        });
+                        observer.observe(container, {
+                            childList: true,
+                            characterData: true,
+                            subtree: true
+                        });
+                        window.__chat_auto_scroll_observer = observer;
+                        return true;
+                    }
+
+                    var attached = attachObserver();
+                    if (!attached) {
+                        var tries = 0;
+                        var interval = setInterval(function(){
+                            tries += 1;
+                            if (attachObserver() || tries > 50) {
+                                clearInterval(interval);
+                            }
+                        }, 100);
+                    }
+
+                    window.addEventListener('resize', function(){
+                        scrollToBottom();
+                    });
+
+                    window.__chat_auto_scroll_init = true;
+                }
+            })();
+            """
+        ),
+        rx.cond(
+            current_streaming_message,
+            rx.script(
+                "window.__chat_auto_scroll = true; requestAnimationFrame(function(){ var el = document.getElementById('chat-bottom-sentinel'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end' }); });"
+            ),
+            rx.cond(
+                loading,
+                rx.script(
+                    "window.__chat_auto_scroll = true; requestAnimationFrame(function(){ var el = document.getElementById('chat-bottom-sentinel'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end' }); });"
+                ),
+                rx.script("window.__chat_auto_scroll = false;"),
+            ),
         ),
         rx.form(
             rx.hstack(
