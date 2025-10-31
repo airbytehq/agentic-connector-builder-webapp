@@ -203,13 +203,52 @@ transformations:
 
     _cached_agent = None
     _cached_api_key = None
+    _agent_started = False
+
+    async def _ensure_agent_started(self, effective_api_key: str):
+        """Ensure the agent context is started and MCP server is running.
+
+        This keeps the MCP server process alive for the duration of the session
+        instead of starting/stopping it on each message.
+        """
+        from .chat_agent import create_chat_agent
+
+        if (
+            ConnectorBuilderState._cached_agent is not None
+            and ConnectorBuilderState._cached_api_key != effective_api_key
+        ):
+            try:
+                await ConnectorBuilderState._cached_agent.__aexit__(None, None, None)
+            except Exception as e:
+                print(
+                    f"[_ensure_agent_started] Error during agent cleanup when API key changed: {e}"
+                )
+            ConnectorBuilderState._cached_agent = None
+            ConnectorBuilderState._agent_started = False
+
+        if ConnectorBuilderState._cached_agent is None:
+            ConnectorBuilderState._cached_agent = create_chat_agent()
+            ConnectorBuilderState._cached_api_key = effective_api_key
+            ConnectorBuilderState._agent_started = False
+
+        if not ConnectorBuilderState._agent_started:
+            try:
+                await ConnectorBuilderState._cached_agent.__aenter__()
+                ConnectorBuilderState._agent_started = True
+            except Exception as e:
+                print(
+                    f"[_ensure_agent_started] Error starting agent context for MCP server: {e}"
+                )
+                ConnectorBuilderState._cached_agent = None
+                ConnectorBuilderState._agent_started = False
+                raise
 
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
             return
 
-        from .chat_agent import SessionDeps, create_chat_agent
+        from .chat_agent import SessionDeps
 
         user_message = self.chat_input.strip()
         self.chat_messages.append({"role": "user", "content": user_message})
@@ -242,40 +281,31 @@ transformations:
             if effective_api_key:
                 os.environ["OPENAI_API_KEY"] = effective_api_key
 
-            if (
-                ConnectorBuilderState._cached_agent is None
-                or ConnectorBuilderState._cached_api_key != effective_api_key
-            ):
-                ConnectorBuilderState._cached_agent = create_chat_agent()
-                ConnectorBuilderState._cached_api_key = effective_api_key
-
+            await self._ensure_agent_started(effective_api_key)
             agent = ConnectorBuilderState._cached_agent
 
-            async with agent:
-                async with agent.run_stream(
-                    user_message, deps=session_deps, message_history=message_history
-                ) as response:
-                    async for text in response.stream_text():
-                        self.current_streaming_message = text
-                        yield
-
-                    try:
-                        final_output = await response.get_output()
-                        if isinstance(final_output, str):
-                            self.current_streaming_message = final_output
-                    except Exception as e:
-                        print(
-                            f"[send_message] get_output failed: {type(e).__name__}: {e}"
-                        )
-
-                self.chat_messages.append(
-                    {"role": "assistant", "content": self.current_streaming_message}
-                )
-                self.current_streaming_message = ""
-
-                if session_deps.yaml_content != self.yaml_content:
-                    self.yaml_content = session_deps.yaml_content
+            async with agent.run_stream(
+                user_message, deps=session_deps, message_history=message_history
+            ) as response:
+                async for text in response.stream_text():
+                    self.current_streaming_message = text
                     yield
+
+                try:
+                    final_output = await response.get_output()
+                    if isinstance(final_output, str):
+                        self.current_streaming_message = final_output
+                except Exception as e:
+                    print(f"[send_message] get_output failed: {type(e).__name__}: {e}")
+
+            self.chat_messages.append(
+                {"role": "assistant", "content": self.current_streaming_message}
+            )
+            self.current_streaming_message = ""
+
+            if session_deps.yaml_content != self.yaml_content:
+                self.yaml_content = session_deps.yaml_content
+                yield
 
         except Exception as e:
             self.chat_messages.append(
