@@ -5,6 +5,7 @@ from pathlib import Path
 
 import reflex as rx
 from dotenv import load_dotenv
+from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from .components import chat_sidebar, settings_button, settings_modal
 from .tabs import (
@@ -20,6 +21,9 @@ if env_file.exists():
 
 SIDEBAR_WIDTH_PERCENT = "33.333%"
 MAIN_CONTENT_WIDTH_PERCENT = "66.667%"
+HISTORY_MAX_MESSAGES = (
+    20  # Maximum number of messages to include in conversation history
+)
 
 
 class ConnectorBuilderState(rx.State):
@@ -114,13 +118,6 @@ transformations:
         Returns:
             List of ModelRequest/ModelResponse objects for PydanticAI
         """
-        from pydantic_ai.messages import (
-            ModelRequest,
-            ModelResponse,
-            TextPart,
-            UserPromptPart,
-        )
-
         history = []
         for msg in messages:
             try:
@@ -132,9 +129,7 @@ transformations:
                         ModelRequest(parts=[UserPromptPart(content=content)])
                     )
                 elif role == "assistant":
-                    history.append(
-                        ModelResponse(parts=[TextPart(content=content)], timestamp=None)
-                    )
+                    history.append(ModelResponse(parts=[TextPart(content=content)]))
             except Exception as e:
                 print(f"Warning: Failed to convert message to PydanticAI format: {e}")
                 continue
@@ -199,7 +194,7 @@ transformations:
             test_list=self.test_list,
         )
 
-        recent_messages = self.chat_messages[:-1][-20:]
+        recent_messages = self.chat_messages[:-1][-HISTORY_MAX_MESSAGES:]
         message_history = self._convert_to_pydantic_history(recent_messages)
 
         effective_api_key = self.get_effective_api_key()
@@ -230,8 +225,10 @@ transformations:
                         final_output = await response.get_output()
                         if isinstance(final_output, str):
                             self.current_streaming_message = final_output
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(
+                            f"[send_message] get_output failed: {type(e).__name__}: {e}"
+                        )
 
                 self.chat_messages.append(
                     {"role": "assistant", "content": self.current_streaming_message}
