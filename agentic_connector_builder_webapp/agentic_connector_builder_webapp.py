@@ -126,12 +126,15 @@ transformations:
         """Check if an API key is configured (either from env var or UI input)."""
         return bool(self.get_effective_api_key())
 
+    _cached_agent = None
+    _cached_api_key = None
+
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
             return
 
-        from .chat_agent import SessionDeps, chat_agent
+        from .chat_agent import SessionDeps, create_chat_agent
 
         user_message = self.chat_input.strip()
         self.chat_messages.append({"role": "user", "content": user_message})
@@ -156,8 +159,17 @@ transformations:
             if effective_api_key:
                 os.environ["OPENAI_API_KEY"] = effective_api_key
 
-            async with chat_agent:
-                async with chat_agent.run_stream(
+            if (
+                ConnectorBuilderState._cached_agent is None
+                or ConnectorBuilderState._cached_api_key != effective_api_key
+            ):
+                ConnectorBuilderState._cached_agent = create_chat_agent()
+                ConnectorBuilderState._cached_api_key = effective_api_key
+
+            agent = ConnectorBuilderState._cached_agent
+
+            async with agent:
+                async with agent.run_stream(
                     user_message, deps=session_deps
                 ) as response:
                     async for text in response.stream_text():
@@ -171,7 +183,7 @@ transformations:
 
                 if session_deps.yaml_content != self.yaml_content:
                     self.yaml_content = session_deps.yaml_content
-                    yield  # Trigger UI update for yaml_content change
+                    yield
 
         except Exception as e:
             self.chat_messages.append(

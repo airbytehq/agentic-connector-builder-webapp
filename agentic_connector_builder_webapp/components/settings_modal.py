@@ -46,7 +46,7 @@ def settings_modal(
                     width="100%",
                 ),
                 rx.text(
-                    "Your API key is stored locally in your browser session and is not sent to any server except OpenAI.",
+                    "Your API key is held temporarily in server memory for your current session. It is not persisted and is only used to call OpenAI. It is not written to disk or logs, and is cleared when the session ends or the page is refreshed.",
                     size="1",
                     color="gray",
                     mt="2",
