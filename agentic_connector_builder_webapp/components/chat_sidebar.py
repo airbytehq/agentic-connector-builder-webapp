@@ -83,9 +83,37 @@ def chat_sidebar(
                 ),
                 spacing="3",
                 width="100%",
+                id="chat-messages-container",
             ),
             flex="1",
             width="100%",
+            id="chat-scroll-area",
+        ),
+        rx.script(
+            """
+            // Auto-scroll chat to bottom when messages update
+            function scrollChatToBottom() {
+                const scrollArea = document.getElementById('chat-scroll-area');
+                if (scrollArea) {
+                    const viewport = scrollArea.querySelector('[data-radix-scroll-area-viewport]');
+                    if (viewport) {
+                        viewport.scrollTop = viewport.scrollHeight;
+                    }
+                }
+            }
+            
+            // Use MutationObserver to detect when messages change
+            const chatContainer = document.getElementById('chat-messages-container');
+            if (chatContainer) {
+                const observer = new MutationObserver(() => {
+                    scrollChatToBottom();
+                });
+                observer.observe(chatContainer, { childList: true, subtree: true });
+            }
+            
+            // Also scroll on initial load
+            setTimeout(scrollChatToBottom, 100);
+            """
         ),
         rx.form(
             rx.hstack(
