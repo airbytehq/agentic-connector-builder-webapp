@@ -200,7 +200,9 @@ transformations:
             try:
                 await ConnectorBuilderState._cached_agent.__aexit__(None, None, None)
             except Exception as e:
-                print(f"[_ensure_agent_started] Error during agent cleanup when API key changed: {e}")
+                print(
+                    f"[_ensure_agent_started] Error during agent cleanup when API key changed: {e}"
+                )
             ConnectorBuilderState._cached_agent = None
             ConnectorBuilderState._agent_started = False
 
@@ -214,7 +216,9 @@ transformations:
                 await ConnectorBuilderState._cached_agent.__aenter__()
                 ConnectorBuilderState._agent_started = True
             except Exception as e:
-                print(f"[_ensure_agent_started] Error starting agent context for MCP server: {e}")
+                print(
+                    f"[_ensure_agent_started] Error starting agent context for MCP server: {e}"
+                )
                 ConnectorBuilderState._cached_agent = None
                 ConnectorBuilderState._agent_started = False
                 raise
