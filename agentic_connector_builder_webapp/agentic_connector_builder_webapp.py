@@ -398,7 +398,7 @@ def index() -> rx.Component:
                     rx.flex(
                         rx.link(
                             rx.image(
-                                src="https://docs.airbyte.com/img/pyairbyte-logo-light.png",
+                                src="https://docs.airbyte.com/img/logo-light.png",
                                 alt="Airbyte Logo",
                                 height="40px",
                                 width="auto",
