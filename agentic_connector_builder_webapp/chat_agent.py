@@ -1,5 +1,6 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Annotated, Any
 
@@ -77,18 +78,6 @@ async def process_tool_call(
 class SessionDeps:
     """Dependencies containing the current webapp session state."""
 
-    yaml_content: str
-    connector_name: str
-    source_api_name: str
-    documentation_urls: str
-    functional_requirements: str
-    test_list: str
-from typing import Annotated, Any, Callable
-
-@dataclass
-class SessionDeps:
-    """Dependencies containing the current webapp session state."""
-    
     yaml_content: str
     connector_name: str
     source_api_name: str
