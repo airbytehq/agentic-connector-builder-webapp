@@ -25,8 +25,8 @@ class FormField(str, Enum):
     test_list = "test_list"
 
 
-FORM_FIELD_DESC = (
-    "The form field to update. One of: " + ", ".join(f.value for f in FormField)
+FORM_FIELD_DESC = "The form field to update. One of: " + ", ".join(
+    f.value for f in FormField
 )
 
 MANIFEST_TOOLS = {
@@ -515,7 +515,9 @@ def create_chat_agent() -> Agent:
 
         try:
             setter(value)
-            return f"Successfully updated '{field_name.value}' in the requirements form."
+            return (
+                f"Successfully updated '{field_name.value}' in the requirements form."
+            )
         except Exception as e:
             return f"Error updating '{field_name.value}': {str(e)}"
 
