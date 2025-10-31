@@ -5,6 +5,13 @@ from pathlib import Path
 
 import reflex as rx
 from dotenv import load_dotenv
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    UserPromptPart,
+)
 
 from .components import chat_sidebar, settings_button, settings_modal
 from .tabs import (
@@ -20,6 +27,9 @@ if env_file.exists():
 
 SIDEBAR_WIDTH_PERCENT = "33.333%"
 MAIN_CONTENT_WIDTH_PERCENT = "66.667%"
+HISTORY_MAX_MESSAGES = (
+    20  # Maximum number of messages to include in conversation history
+)
 
 
 class ConnectorBuilderState(rx.State):
@@ -105,6 +115,35 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
+    def _convert_to_pydantic_history(
+        self, messages: list[dict[str, str]]
+    ) -> list[ModelMessage]:
+        """Convert chat messages to PydanticAI message format.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content' keys
+
+        Returns:
+            List of ModelMessage objects for PydanticAI
+        """
+        history = []
+        for msg in messages:
+            try:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+
+                if role == "user":
+                    history.append(
+                        ModelRequest(parts=[UserPromptPart(content=content)])
+                    )
+                elif role == "assistant":
+                    history.append(ModelResponse(parts=[TextPart(content=content)]))
+            except Exception as e:
+                print(f"Warning: Failed to convert message to PydanticAI format: {e}")
+                continue
+
+        return history
+
     def open_settings_modal(self):
         """Open the settings modal."""
         self.settings_modal_open = True
@@ -163,6 +202,9 @@ transformations:
             test_list=self.test_list,
         )
 
+        recent_messages = self.chat_messages[:-1][-HISTORY_MAX_MESSAGES:]
+        message_history = self._convert_to_pydantic_history(recent_messages)
+
         effective_api_key = self.get_effective_api_key()
         original_api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -181,11 +223,20 @@ transformations:
 
             async with agent:
                 async with agent.run_stream(
-                    user_message, deps=session_deps
+                    user_message, deps=session_deps, message_history=message_history
                 ) as response:
                     async for text in response.stream_text():
                         self.current_streaming_message = text
                         yield
+
+                    try:
+                        final_output = await response.get_output()
+                        if isinstance(final_output, str):
+                            self.current_streaming_message = final_output
+                    except Exception as e:
+                        print(
+                            f"[send_message] get_output failed: {type(e).__name__}: {e}"
+                        )
 
                 self.chat_messages.append(
                     {"role": "assistant", "content": self.current_streaming_message}
