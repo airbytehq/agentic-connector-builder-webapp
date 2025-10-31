@@ -91,33 +91,67 @@ def chat_sidebar(
         ),
         rx.script(
             """
-            window.__chat_auto_scroll_init ||= (function(){
-                const scroll = () => {
-                    if (!window.__chat_auto_scroll) return;
-                    const el = document.getElementById('chat-bottom-sentinel');
-                    if (el) {
-                        el.scrollIntoView({block:'end'});
+            (function(){
+                if (!window.__chat_auto_scroll_init) {
+                    function scrollToBottom() {
+                        if (!window.__chat_auto_scroll) return;
+                        var el = document.getElementById('chat-bottom-sentinel');
+                        if (el && el.scrollIntoView) {
+                            el.scrollIntoView({ block: 'end' });
+                        }
                     }
-                };
-                const container = document.getElementById('chat-messages-container');
-                if (container) {
-                    new MutationObserver(scroll).observe(container, {
-                        childList: true,
-                        characterData: true,
-                        subtree: true
+
+                    function attachObserver() {
+                        var container = document.getElementById('chat-messages-container');
+                        if (!container) return false;
+
+                        if (window.__chat_auto_scroll_observer) {
+                            try { window.__chat_auto_scroll_observer.disconnect(); } catch (e) {}
+                        }
+                        var observer = new MutationObserver(function() {
+                            scrollToBottom();
+                        });
+                        observer.observe(container, {
+                            childList: true,
+                            characterData: true,
+                            subtree: true
+                        });
+                        window.__chat_auto_scroll_observer = observer;
+                        return true;
+                    }
+
+                    var attached = attachObserver();
+                    if (!attached) {
+                        var tries = 0;
+                        var interval = setInterval(function(){
+                            tries += 1;
+                            if (attachObserver() || tries > 50) {
+                                clearInterval(interval);
+                            }
+                        }, 100);
+                    }
+
+                    window.addEventListener('resize', function(){
+                        scrollToBottom();
                     });
+
+                    window.__chat_auto_scroll_init = true;
                 }
-                window.addEventListener('resize', scroll);
-                return true;
             })();
             """
         ),
         rx.cond(
-            loading,
+            current_streaming_message,
             rx.script(
-                "window.__chat_auto_scroll = true; requestAnimationFrame(()=>{document.getElementById('chat-bottom-sentinel')?.scrollIntoView({block:'end'})});"
+                "window.__chat_auto_scroll = true; requestAnimationFrame(function(){ var el = document.getElementById('chat-bottom-sentinel'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end' }); });"
             ),
-            rx.script("window.__chat_auto_scroll = false;"),
+            rx.cond(
+                loading,
+                rx.script(
+                    "window.__chat_auto_scroll = true; requestAnimationFrame(function(){ var el = document.getElementById('chat-bottom-sentinel'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'end' }); });"
+                ),
+                rx.script("window.__chat_auto_scroll = false;"),
+            ),
         ),
         rx.form(
             rx.hstack(
