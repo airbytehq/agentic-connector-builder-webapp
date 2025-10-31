@@ -69,7 +69,12 @@ transformations:
       email: email_address
 """
 
-    chat_messages: list[dict[str, str]] = []
+    chat_messages: list[dict[str, str]] = [
+        {
+            "role": "assistant",
+            "content": "Welcome! 👋\n\nWhat connector do you want to build today?",
+        }
+    ]
     chat_input: str = ""
     current_streaming_message: str = ""
     chat_loading: bool = False
@@ -200,6 +205,8 @@ transformations:
             documentation_urls=self.documentation_urls,
             functional_requirements=self.functional_requirements,
             test_list=self.test_list,
+            set_source_api_name=self.set_source_api_name,
+            set_connector_name=self.set_connector_name,
         )
 
         recent_messages = self.chat_messages[:-1][-HISTORY_MAX_MESSAGES:]

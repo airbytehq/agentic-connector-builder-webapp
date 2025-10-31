@@ -83,6 +83,8 @@ class SessionDeps:
     documentation_urls: str
     functional_requirements: str
     test_list: str
+    set_source_api_name: callable = None
+    set_connector_name: callable = None
 
 
 mcp_server = MCPServerStdio(
@@ -356,5 +358,65 @@ def create_chat_agent() -> Agent:
 
         except Exception as e:
             return f"Error replacing lines in manifest: {str(e)}"
+
+    @agent.tool
+    def set_api_name(
+        ctx: RunContext[SessionDeps],
+        api_name: Annotated[
+            str, Field(description="The name of the API (e.g., 'JSONPlaceholder API')")
+        ],
+    ) -> str:
+        """Set the Source API Name in the requirements form.
+
+        Use this tool when the user tells you what API they want to build a connector for.
+        This will populate the 'Source API name' field in the Define Requirements tab.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            api_name: The name of the API
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if ctx.deps.set_source_api_name:
+                ctx.deps.set_source_api_name(api_name)
+                return f"Successfully set the Source API Name to '{api_name}' in the requirements form."
+            else:
+                return "Error: Unable to update Source API Name (callback not available)"
+        except Exception as e:
+            return f"Error setting API name: {str(e)}"
+
+    @agent.tool
+    def set_connector_name(
+        ctx: RunContext[SessionDeps],
+        connector_name: Annotated[
+            str,
+            Field(
+                description="The connector name in the format 'source-{name}' (e.g., 'source-jsonplaceholder')"
+            ),
+        ],
+    ) -> str:
+        """Set the Connector Name in the requirements form.
+
+        Use this tool to populate the 'Connector name' field in the Define Requirements tab.
+        The connector name should follow the format 'source-{name}' where {name} is derived
+        from the API name (e.g., 'JSONPlaceholder API' -> 'source-jsonplaceholder').
+
+        Args:
+            ctx: Runtime context with session dependencies
+            connector_name: The connector name in source-{name} format
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if ctx.deps.set_connector_name:
+                ctx.deps.set_connector_name(connector_name)
+                return f"Successfully set the Connector Name to '{connector_name}' in the requirements form."
+            else:
+                return "Error: Unable to update Connector Name (callback not available)"
+        except Exception as e:
+            return f"Error setting connector name: {str(e)}"
 
     return agent
