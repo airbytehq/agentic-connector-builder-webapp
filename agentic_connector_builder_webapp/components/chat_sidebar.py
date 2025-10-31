@@ -6,10 +6,18 @@ import reflex as rx
 def chat_bubble(message_str, is_user: bool) -> rx.Component:
     """Render a chat bubble."""
     return rx.card(
-        rx.text(
-            message_str,
-            size="2",
-            color=rx.cond(is_user, "white", "gray.100"),
+        rx.cond(
+            is_user,
+            rx.text(
+                message_str,
+                size="2",
+                color="white",
+            ),
+            rx.markdown(
+                message_str,
+                size="2",
+                color="gray.100",
+            ),
         ),
         background=rx.cond(is_user, "blue.500", "gray.800"),
         border="1px solid silver",

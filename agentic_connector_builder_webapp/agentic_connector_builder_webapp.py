@@ -1,8 +1,19 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
-import reflex as rx
+import os
+from pathlib import Path
 
-from .components import chat_sidebar
+import reflex as rx
+from dotenv import load_dotenv
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    UserPromptPart,
+)
+
+from .components import chat_sidebar, settings_button, settings_modal
 from .tabs import (
     code_tab_content,
     progress_tab_content,
@@ -10,8 +21,15 @@ from .tabs import (
     save_publish_tab_content,
 )
 
+env_file = Path.cwd() / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
+
 SIDEBAR_WIDTH_PERCENT = "33.333%"
 MAIN_CONTENT_WIDTH_PERCENT = "66.667%"
+HISTORY_MAX_MESSAGES = (
+    20  # Maximum number of messages to include in conversation history
+)
 
 
 class ConnectorBuilderState(rx.State):
@@ -24,6 +42,9 @@ class ConnectorBuilderState(rx.State):
     documentation_urls: str = ""
     functional_requirements: str = ""
     test_list: str = ""
+
+    settings_modal_open: bool = False
+    openai_api_key_input: str = ""
 
     yaml_content: str = """# Example YAML configuration
 name: example-connector
@@ -94,12 +115,76 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
+    def _convert_to_pydantic_history(
+        self, messages: list[dict[str, str]]
+    ) -> list[ModelMessage]:
+        """Convert chat messages to PydanticAI message format.
+
+        Args:
+            messages: List of message dicts with 'role' and 'content' keys
+
+        Returns:
+            List of ModelMessage objects for PydanticAI
+        """
+        history = []
+        for msg in messages:
+            try:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+
+                if role == "user":
+                    history.append(
+                        ModelRequest(parts=[UserPromptPart(content=content)])
+                    )
+                elif role == "assistant":
+                    history.append(ModelResponse(parts=[TextPart(content=content)]))
+            except Exception as e:
+                print(f"Warning: Failed to convert message to PydanticAI format: {e}")
+                continue
+
+        return history
+
+    def open_settings_modal(self):
+        """Open the settings modal."""
+        self.settings_modal_open = True
+
+    def close_settings_modal(self):
+        """Close the settings modal."""
+        self.settings_modal_open = False
+
+    def set_openai_api_key_input(self, value: str):
+        """Set the OpenAI API key input value."""
+        self.openai_api_key_input = value
+
+    def save_settings(self):
+        """Save settings (currently just closes modal as state is already updated)."""
+        self.settings_modal_open = False
+
+    def get_effective_api_key(self) -> str:
+        """Get the effective OpenAI API key (UI input takes precedence over env var)."""
+        if self.openai_api_key_input:
+            return self.openai_api_key_input
+        return os.environ.get("OPENAI_API_KEY", "")
+
+    @rx.var
+    def has_api_key(self) -> bool:
+        """Check if an API key is configured (either from env var or UI input)."""
+        return bool(self.get_effective_api_key())
+
+    @rx.var
+    def has_env_api_key(self) -> bool:
+        """Check if an API key is available from environment variables (not UI input)."""
+        return bool(os.environ.get("OPENAI_API_KEY", ""))
+
+    _cached_agent = None
+    _cached_api_key = None
+
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
             return
 
-        from .chat_agent import SessionDeps, chat_agent
+        from .chat_agent import SessionDeps, create_chat_agent
 
         user_message = self.chat_input.strip()
         self.chat_messages.append({"role": "user", "content": user_message})
@@ -117,14 +202,41 @@ transformations:
             test_list=self.test_list,
         )
 
+        recent_messages = self.chat_messages[:-1][-HISTORY_MAX_MESSAGES:]
+        message_history = self._convert_to_pydantic_history(recent_messages)
+
+        effective_api_key = self.get_effective_api_key()
+        original_api_key = os.environ.get("OPENAI_API_KEY")
+
         try:
-            async with chat_agent:
-                async with chat_agent.run_stream(
-                    user_message, deps=session_deps
+            if effective_api_key:
+                os.environ["OPENAI_API_KEY"] = effective_api_key
+
+            if (
+                ConnectorBuilderState._cached_agent is None
+                or ConnectorBuilderState._cached_api_key != effective_api_key
+            ):
+                ConnectorBuilderState._cached_agent = create_chat_agent()
+                ConnectorBuilderState._cached_api_key = effective_api_key
+
+            agent = ConnectorBuilderState._cached_agent
+
+            async with agent:
+                async with agent.run_stream(
+                    user_message, deps=session_deps, message_history=message_history
                 ) as response:
                     async for text in response.stream_text():
                         self.current_streaming_message = text
                         yield
+
+                    try:
+                        final_output = await response.get_output()
+                        if isinstance(final_output, str):
+                            self.current_streaming_message = final_output
+                    except Exception as e:
+                        print(
+                            f"[send_message] get_output failed: {type(e).__name__}: {e}"
+                        )
 
                 self.chat_messages.append(
                     {"role": "assistant", "content": self.current_streaming_message}
@@ -133,7 +245,7 @@ transformations:
 
                 if session_deps.yaml_content != self.yaml_content:
                     self.yaml_content = session_deps.yaml_content
-                    yield  # Trigger UI update for yaml_content change
+                    yield
 
         except Exception as e:
             self.chat_messages.append(
@@ -144,6 +256,10 @@ transformations:
             )
             self.current_streaming_message = ""
         finally:
+            if original_api_key is not None:
+                os.environ["OPENAI_API_KEY"] = original_api_key
+            elif effective_api_key:
+                os.environ.pop("OPENAI_API_KEY", None)
             self.chat_loading = False
 
 
@@ -221,10 +337,20 @@ def index() -> rx.Component:
         rx.box(
             rx.container(
                 rx.vstack(
-                    rx.heading(
-                        "Agentic Connector Builder",
-                        size="9",
-                        text_align="center",
+                    rx.flex(
+                        rx.heading(
+                            "Agentic Connector Builder",
+                            size="9",
+                            text_align="center",
+                        ),
+                        settings_button(
+                            has_api_key=ConnectorBuilderState.has_api_key,
+                            on_click=ConnectorBuilderState.open_settings_modal,
+                        ),
+                        justify="center",
+                        align="center",
+                        gap="4",
+                        width="100%",
                         mb=6,
                     ),
                     rx.text(
@@ -245,6 +371,14 @@ def index() -> rx.Component:
             ),
             margin_left=SIDEBAR_WIDTH_PERCENT,
             width=MAIN_CONTENT_WIDTH_PERCENT,
+        ),
+        settings_modal(
+            is_open=ConnectorBuilderState.settings_modal_open,
+            openai_api_key=ConnectorBuilderState.openai_api_key_input,
+            has_env_api_key=ConnectorBuilderState.has_env_api_key,
+            on_open_change=ConnectorBuilderState.close_settings_modal,
+            on_api_key_change=ConnectorBuilderState.set_openai_api_key_input,
+            on_save=ConnectorBuilderState.save_settings,
         ),
     )
 
