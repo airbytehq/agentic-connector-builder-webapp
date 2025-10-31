@@ -98,7 +98,8 @@ def settings_button(
             size=20,
         ),
         rx.cond(
-            ~has_api_key,
+            has_api_key,
+            rx.fragment(),
             rx.icon(
                 "circle-alert",
                 size=16,

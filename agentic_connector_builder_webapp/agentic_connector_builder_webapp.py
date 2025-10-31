@@ -121,6 +121,7 @@ transformations:
             return self.openai_api_key_input
         return os.environ.get("OPENAI_API_KEY", "")
 
+    @rx.var
     def has_api_key(self) -> bool:
         """Check if an API key is configured (either from env var or UI input)."""
         return bool(self.get_effective_api_key())
