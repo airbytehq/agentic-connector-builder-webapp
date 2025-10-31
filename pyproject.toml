@@ -8,6 +8,7 @@ dependencies = [
     "reflex",
     "reflex-monaco",
     "pydantic-ai",
+    "pydantic-ai-slim[duckduckgo]",
     "python-dotenv>=1.1.1",
 ]
 
