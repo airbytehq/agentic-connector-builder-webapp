@@ -531,7 +531,9 @@ def create_chat_agent() -> Agent:
 
             connector_tasks = [t for t in task_list.tasks if t.task_type == "connector"]
             stream_tasks = [t for t in task_list.tasks if t.task_type == "stream"]
-            finalization_tasks = [t for t in task_list.tasks if t.task_type == "finalization"]
+            finalization_tasks = [
+                t for t in task_list.tasks if t.task_type == "finalization"
+            ]
 
             if connector_tasks:
                 result.append("\n=== Connector Tasks (Pre-Stream) ===")
@@ -890,7 +892,9 @@ def create_chat_agent() -> Agent:
 
             ctx.deps.task_list_json = task_list.model_dump_json()
 
-            detail_msg = f" with detail: {task_status_detail}" if task_status_detail else ""
+            detail_msg = (
+                f" with detail: {task_status_detail}" if task_status_detail else ""
+            )
             return f"Successfully updated task '{task_id}' status to '{status}'{detail_msg}."
 
         except Exception as e:
