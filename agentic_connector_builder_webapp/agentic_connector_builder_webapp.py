@@ -99,6 +99,12 @@ transformations:
         """Update the task list from a TaskList object."""
         self.task_list_json = task_list.model_dump_json()
 
+    def ensure_task_list(self):
+        """Ensure the task list is initialized with default values if empty."""
+        if not self.task_list_json:
+            default_task_list = create_default_connector_task_list()
+            self.task_list_json = default_task_list.model_dump_json()
+
     def update_yaml_content(self, content: str):
         """Update the YAML content when editor changes."""
         self.yaml_content = content
@@ -131,6 +137,8 @@ transformations:
     def set_current_tab(self, tab: str):
         """Set the current active tab."""
         self.current_tab = tab
+        if tab == "progress":
+            self.ensure_task_list()
 
     def set_chat_input(self, value: str):
         """Set the chat input value."""
