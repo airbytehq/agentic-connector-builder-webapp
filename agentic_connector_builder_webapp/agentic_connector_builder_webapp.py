@@ -5,7 +5,13 @@ from pathlib import Path
 
 import reflex as rx
 from dotenv import load_dotenv
-from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    TextPart,
+    UserPromptPart,
+)
 
 from .components import chat_sidebar, settings_button, settings_modal
 from .tabs import (
@@ -109,14 +115,16 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
-    def _convert_to_pydantic_history(self, messages: list[dict[str, str]]) -> list:
+    def _convert_to_pydantic_history(
+        self, messages: list[dict[str, str]]
+    ) -> list[ModelMessage]:
         """Convert chat messages to PydanticAI message format.
 
         Args:
             messages: List of message dicts with 'role' and 'content' keys
 
         Returns:
-            List of ModelRequest/ModelResponse objects for PydanticAI
+            List of ModelMessage objects for PydanticAI
         """
         history = []
         for msg in messages:
