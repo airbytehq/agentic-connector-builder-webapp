@@ -200,7 +200,7 @@ transformations:
             try:
                 await ConnectorBuilderState._cached_agent.__aexit__(None, None, None)
             except Exception as e:
-                print(f"[_ensure_agent_started] Error cleaning up old agent: {e}")
+                print(f"[_ensure_agent_started] Error during agent cleanup when API key changed: {e}")
             ConnectorBuilderState._cached_agent = None
             ConnectorBuilderState._agent_started = False
 
