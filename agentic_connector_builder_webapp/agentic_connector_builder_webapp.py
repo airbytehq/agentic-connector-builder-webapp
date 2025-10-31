@@ -396,6 +396,16 @@ def index() -> rx.Component:
             rx.container(
                 rx.vstack(
                     rx.flex(
+                        rx.link(
+                            rx.image(
+                                src="https://docs.airbyte.com/img/pyairbyte-logo-dark.png",
+                                alt="Airbyte Logo",
+                                height="40px",
+                                width="auto",
+                            ),
+                            href="https://airbyte.com",
+                            is_external=True,
+                        ),
                         rx.heading(
                             "Agentic Connector Builder",
                             size="9",
