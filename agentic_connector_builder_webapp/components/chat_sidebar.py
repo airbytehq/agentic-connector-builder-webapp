@@ -56,6 +56,7 @@ def chat_sidebar(
     loading,
     on_input_change,
     on_send,
+    on_key_down=None,
 ) -> rx.Component:
     """Create the fixed chat sidebar component."""
     return rx.vstack(
@@ -93,6 +94,7 @@ def chat_sidebar(
                     placeholder="Ask me anything about connector building...",
                     value=input_value,
                     on_change=on_input_change,
+                    on_key_down=on_key_down,
                     disabled=loading,
                     width="100%",
                     size="3",
@@ -104,7 +106,7 @@ def chat_sidebar(
                         loading=loading,
                         size="3",
                     ),
-                    content="Press Cmd+Enter to send your message",
+                    content="Enter to send • Shift+Enter for newline • Ctrl/Cmd+Enter also sends",
                 ),
                 width="100%",
             ),

@@ -241,6 +241,27 @@ transformations:
                 self._agent_started = False
                 raise
 
+    async def handle_chat_keydown(self, key: str, **kwargs):
+        """Handle keyboard events in the chat input."""
+        if self.chat_loading:
+            return
+
+        modifiers = kwargs.get("kwargs", {})
+        ctrl_key = modifiers.get("ctrl_key", False)
+        meta_key = modifiers.get("meta_key", False)
+        shift_key = modifiers.get("shift_key", False)
+
+        should_submit = False
+
+        if key == "Enter":
+            if ctrl_key or meta_key:
+                should_submit = True
+            elif not shift_key:
+                should_submit = True
+
+        if should_submit:
+            return self.send_message()
+
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
@@ -379,6 +400,7 @@ def index() -> rx.Component:
                 loading=ConnectorBuilderState.chat_loading,
                 on_input_change=ConnectorBuilderState.set_chat_input,
                 on_send=ConnectorBuilderState.send_message,
+                on_key_down=ConnectorBuilderState.handle_chat_keydown,
             ),
             position="fixed",
             left="0",
