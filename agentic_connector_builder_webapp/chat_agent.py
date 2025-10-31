@@ -9,6 +9,8 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
 from pydantic_ai.tools import ToolDefinition
 
+from .task_list import ConnectorTask, StreamTask, TaskList, TaskStatus
+
 MANIFEST_TOOLS = {
     "execute_stream_test_read",
     "validate_manifest",
@@ -84,6 +86,7 @@ class SessionDeps:
     documentation_urls: str
     functional_requirements: str
     test_list: str
+    task_list_json: str
     set_source_api_name: Callable[[str], Any] | None = None
     set_connector_name: Callable[[str], Any] | None = None
 
@@ -421,5 +424,295 @@ def create_chat_agent() -> Agent:
                 return "Error: Unable to update Connector Name (callback not available)"
         except Exception as e:
             return f"Error setting connector name: {str(e)}"
+
+    @agent.tool
+    def list_tasks(ctx: RunContext[SessionDeps]) -> str:
+        """List all tasks in the current task list with their statuses.
+
+        Use this tool to view the current task list, check task statuses,
+        and understand what work has been completed or is in progress.
+
+        Returns:
+            A formatted string showing all tasks with their IDs, titles, and statuses.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+            summary = task_list.get_summary()
+
+            result = [
+                f"Task List: {task_list.name}",
+                f"Description: {task_list.description}",
+                f"\nSummary: {summary['completed']}/{summary['total']} completed, "
+                f"{summary['in_progress']} in progress, {summary['failed']} failed\n",
+                "Tasks:",
+            ]
+
+            for i, task in enumerate(task_list.tasks, 1):
+                status_icon = {
+                    TaskStatus.NOT_STARTED: "○",
+                    TaskStatus.IN_PROGRESS: "◐",
+                    TaskStatus.COMPLETED: "●",
+                    TaskStatus.FAILED: "✗",
+                }.get(task.status, "?")
+
+                task_info = f"{i}. [{status_icon}] {task.title} (ID: {task.id}, Status: {task.status.value})"
+                if isinstance(task, StreamTask):
+                    task_info += f" [Stream: {task.stream_name}]"
+                if task.details:
+                    task_info += f"\n   Details: {task.details}"
+                result.append(task_info)
+
+            return "\n".join(result)
+
+        except Exception as e:
+            return f"Error listing tasks: {str(e)}"
+
+    @agent.tool
+    def add_connector_task(
+        ctx: RunContext[SessionDeps],
+        task_id: Annotated[str, Field(description="Unique identifier for the task")],
+        title: Annotated[str, Field(description="Title/description of the task")],
+        details: Annotated[
+            str | None, Field(description="Optional additional details")
+        ] = None,
+    ) -> str:
+        """Add a new connector task to the end of the task list.
+
+        Use this tool to add a new generic connector task that doesn't relate
+        to a specific stream.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            task_id: Unique identifier for the task
+            title: Title/description of the task
+            details: Optional additional details about the task
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+            task = ConnectorTask(id=task_id, title=title, details=details)
+            task_list.add_task(task)
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully added connector task '{title}' (ID: {task_id}) to the task list."
+
+        except Exception as e:
+            return f"Error adding connector task: {str(e)}"
+
+    @agent.tool
+    def add_stream_task(
+        ctx: RunContext[SessionDeps],
+        task_id: Annotated[str, Field(description="Unique identifier for the task")],
+        title: Annotated[str, Field(description="Title/description of the task")],
+        stream_name: Annotated[
+            str, Field(description="Name of the stream this task relates to")
+        ],
+        details: Annotated[
+            str | None, Field(description="Optional additional details")
+        ] = None,
+    ) -> str:
+        """Add a new stream-specific task to the end of the task list.
+
+        Use this tool to add a task that relates to a specific data stream.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            task_id: Unique identifier for the task
+            title: Title/description of the task
+            stream_name: Name of the stream this task relates to
+            details: Optional additional details about the task
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+            task = StreamTask(
+                id=task_id, title=title, stream_name=stream_name, details=details
+            )
+            task_list.add_task(task)
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully added stream task '{title}' (ID: {task_id}) for stream '{stream_name}' to the task list."
+
+        except Exception as e:
+            return f"Error adding stream task: {str(e)}"
+
+    @agent.tool
+    def insert_connector_task(
+        ctx: RunContext[SessionDeps],
+        position: Annotated[
+            int, Field(description="Position to insert at (0-indexed, 0 = first)")
+        ],
+        task_id: Annotated[str, Field(description="Unique identifier for the task")],
+        title: Annotated[str, Field(description="Title/description of the task")],
+        details: Annotated[
+            str | None, Field(description="Optional additional details")
+        ] = None,
+    ) -> str:
+        """Insert a new connector task at a specific position in the task list.
+
+        Use this tool to insert a generic connector task at a specific position
+        rather than at the end.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            position: Position to insert at (0-indexed, 0 = first position)
+            task_id: Unique identifier for the task
+            title: Title/description of the task
+            details: Optional additional details about the task
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+            task = ConnectorTask(id=task_id, title=title, details=details)
+            task_list.insert_task(position, task)
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully inserted connector task '{title}' (ID: {task_id}) at position {position}."
+
+        except Exception as e:
+            return f"Error inserting connector task: {str(e)}"
+
+    @agent.tool
+    def insert_stream_task(
+        ctx: RunContext[SessionDeps],
+        position: Annotated[
+            int, Field(description="Position to insert at (0-indexed, 0 = first)")
+        ],
+        task_id: Annotated[str, Field(description="Unique identifier for the task")],
+        title: Annotated[str, Field(description="Title/description of the task")],
+        stream_name: Annotated[
+            str, Field(description="Name of the stream this task relates to")
+        ],
+        details: Annotated[
+            str | None, Field(description="Optional additional details")
+        ] = None,
+    ) -> str:
+        """Insert a new stream-specific task at a specific position in the task list.
+
+        Use this tool to insert a stream task at a specific position rather than
+        at the end.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            position: Position to insert at (0-indexed, 0 = first position)
+            task_id: Unique identifier for the task
+            title: Title/description of the task
+            stream_name: Name of the stream this task relates to
+            details: Optional additional details about the task
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+            task = StreamTask(
+                id=task_id, title=title, stream_name=stream_name, details=details
+            )
+            task_list.insert_task(position, task)
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully inserted stream task '{title}' (ID: {task_id}) for stream '{stream_name}' at position {position}."
+
+        except Exception as e:
+            return f"Error inserting stream task: {str(e)}"
+
+    @agent.tool
+    def update_task_status(
+        ctx: RunContext[SessionDeps],
+        task_id: Annotated[str, Field(description="ID of the task to update")],
+        status: Annotated[
+            str,
+            Field(
+                description="New status: 'not_started', 'in_progress', 'completed', or 'failed'"
+            ),
+        ],
+    ) -> str:
+        """Update the status of a task in the task list.
+
+        Use this tool to mark tasks as started, completed, or failed as work progresses.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            task_id: ID of the task to update
+            status: New status (not_started, in_progress, completed, or failed)
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+
+            try:
+                task_status = TaskStatus(status)
+            except ValueError:
+                return f"Error: Invalid status '{status}'. Must be one of: not_started, in_progress, completed, failed"
+
+            success = task_list.update_task_status(task_id, task_status)
+            if not success:
+                return f"Error: Task with ID '{task_id}' not found in task list."
+
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully updated task '{task_id}' status to '{status}'."
+
+        except Exception as e:
+            return f"Error updating task status: {str(e)}"
+
+    @agent.tool
+    def remove_task(
+        ctx: RunContext[SessionDeps],
+        task_id: Annotated[str, Field(description="ID of the task to remove")],
+    ) -> str:
+        """Remove a task from the task list.
+
+        Use this tool to remove tasks that are no longer needed or were added by mistake.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            task_id: ID of the task to remove
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+
+            success = task_list.remove_task(task_id)
+            if not success:
+                return f"Error: Task with ID '{task_id}' not found in task list."
+
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully removed task '{task_id}' from the task list."
+
+        except Exception as e:
+            return f"Error removing task: {str(e)}"
 
     return agent

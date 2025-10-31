@@ -21,6 +21,7 @@ from .tabs import (
     requirements_tab_content,
     save_publish_tab_content,
 )
+from .task_list import TaskList, create_default_connector_task_list
 
 env_file = Path.cwd() / ".env"
 if env_file.exists():
@@ -43,6 +44,8 @@ class ConnectorBuilderState(rx.State):
     documentation_urls: str = ""
     functional_requirements: str = ""
     test_list: str = ""
+
+    task_list_json: str = ""
 
     settings_modal_open: bool = False
     openai_api_key_input: str = ""
@@ -83,6 +86,18 @@ transformations:
     def get_content_length(self) -> int:
         """Get the content length."""
         return len(self.yaml_content)
+
+    def get_task_list(self) -> TaskList:
+        """Get the task list object from JSON."""
+        if not self.task_list_json:
+            default_task_list = create_default_connector_task_list()
+            self.task_list_json = default_task_list.model_dump_json()
+            return default_task_list
+        return TaskList.model_validate_json(self.task_list_json)
+
+    def update_task_list(self, task_list: TaskList):
+        """Update the task list from a TaskList object."""
+        self.task_list_json = task_list.model_dump_json()
 
     def update_yaml_content(self, content: str):
         """Update the YAML content when editor changes."""
@@ -235,6 +250,8 @@ transformations:
         self.current_streaming_message = ""
         yield
 
+        self.get_task_list()
+
         session_deps = SessionDeps(
             yaml_content=self.yaml_content,
             connector_name=self.connector_name,
@@ -242,6 +259,7 @@ transformations:
             documentation_urls=self.documentation_urls,
             functional_requirements=self.functional_requirements,
             test_list=self.test_list,
+            task_list_json=self.task_list_json,
             set_source_api_name=self.set_source_api_name,
             set_connector_name=self.set_connector_name,
         )
@@ -280,6 +298,10 @@ transformations:
 
             if session_deps.yaml_content != self.yaml_content:
                 self.yaml_content = session_deps.yaml_content
+                yield
+
+            if session_deps.task_list_json != self.task_list_json:
+                self.task_list_json = session_deps.task_list_json
                 yield
 
         except Exception as e:
@@ -323,7 +345,7 @@ def connector_builder_tabs() -> rx.Component:
             value="requirements",
         ),
         rx.tabs.content(
-            progress_tab_content(),
+            progress_tab_content(task_list_json=ConnectorBuilderState.task_list_json),
             value="progress",
         ),
         rx.tabs.content(
