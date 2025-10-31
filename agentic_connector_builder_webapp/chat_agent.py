@@ -1,7 +1,11 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
+import json
+import re
 from dataclasses import dataclass
 from typing import Annotated, Any, Callable
+from urllib.parse import quote_plus, urljoin, urlparse
+from urllib.request import Request, urlopen
 
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
@@ -492,5 +496,84 @@ def create_chat_agent() -> Agent:
             return f"Successfully updated '{field_name}' in the requirements form."
         except Exception as e:
             return f"Error updating '{field_name}': {str(e)}"
+
+    @agent.tool
+    def search_documentation_urls(
+        ctx: RunContext[SessionDeps],
+        api_name: Annotated[
+            str, Field(description="The name of the API to search documentation for")
+        ],
+    ) -> str:
+        """Search for documentation URLs for a given API.
+
+        This tool searches the web for official documentation URLs for the specified API.
+        It returns a newline-delimited list of relevant documentation URLs that can be
+        used to populate the documentation_urls field.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            api_name: The name of the API (e.g., "JSONPlaceholder API", "GitHub API")
+
+        Returns:
+            A newline-delimited string of documentation URLs, or an error message.
+        """
+        try:
+            search_query = f"{api_name} API documentation"
+            encoded_query = quote_plus(search_query)
+            search_url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
+
+            req = Request(
+                search_url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                },
+            )
+
+            with urlopen(req, timeout=10) as response:
+                html_content = response.read().decode("utf-8", errors="ignore")
+
+            url_pattern = re.compile(
+                r'<a[^>]+class="result__url"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>'
+            )
+            matches = url_pattern.findall(html_content)
+
+            doc_keywords = [
+                "docs",
+                "documentation",
+                "developer",
+                "api",
+                "reference",
+                "guide",
+            ]
+            found_urls = []
+            seen_domains = set()
+
+            for url, text in matches[:20]:
+                try:
+                    parsed = urlparse(url)
+                    domain = parsed.netloc.lower()
+
+                    if domain in seen_domains:
+                        continue
+
+                    url_lower = url.lower()
+                    text_lower = text.lower()
+
+                    if any(keyword in url_lower or keyword in text_lower for keyword in doc_keywords):
+                        found_urls.append(url)
+                        seen_domains.add(domain)
+
+                    if len(found_urls) >= 5:
+                        break
+                except Exception:
+                    continue
+
+            if found_urls:
+                return "\n".join(found_urls)
+            else:
+                return f"No documentation URLs found for '{api_name}'. You may need to search manually or ask the user for documentation links."
+
+        except Exception as e:
+            return f"Error searching for documentation URLs: {str(e)}. You may need to ask the user to provide documentation links manually."
 
     return agent
