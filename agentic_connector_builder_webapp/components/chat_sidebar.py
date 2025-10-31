@@ -15,6 +15,7 @@ def chat_bubble(message_str, is_user: bool) -> rx.Component:
             ),
             rx.markdown(
                 message_str,
+                size="2",
                 color="gray.100",
             ),
         ),
