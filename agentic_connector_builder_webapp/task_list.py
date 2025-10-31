@@ -12,13 +12,15 @@ class TaskStatus(str, Enum):
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
-    FAILED = "failed"
+    BLOCKED = "blocked"
 
 
 class Task(BaseModel):
     """Base task model with common fields."""
 
-    task_type: str = Field(description="Type of task (connector or stream)")
+    task_type: str = Field(
+        description="Type of task (connector, stream, or finalization)"
+    )
     id: str = Field(description="Unique identifier for the task")
     task_name: str = Field(description="Short name/title of the task")
     description: str | None = Field(
@@ -27,6 +29,10 @@ class Task(BaseModel):
     )
     status: TaskStatus = Field(
         default=TaskStatus.NOT_STARTED, description="Current status of the task"
+    )
+    task_status_detail: str | None = Field(
+        default=None,
+        description="Details about the task status. Can be set when marking task as completed, blocked, or in progress to provide context.",
     )
 
     def model_post_init(self, __context: Any) -> None:
@@ -39,7 +45,7 @@ class Task(BaseModel):
 
 
 class ConnectorTask(Task):
-    """Generic connector task with just a description."""
+    """General connector task for pre-stream work."""
 
     task_type: Literal["connector"] = "connector"
 
@@ -55,29 +61,39 @@ class StreamTask(Task):
         return f"{self.stream_name}: {self.task_name}"
 
 
+class FinalizationTask(Task):
+    """Finalization task for post-stream work."""
+
+    task_type: Literal["finalization"] = "finalization"
+
+
 class TaskList(BaseModel):
     """Generic task list for tracking progress."""
 
     name: str = Field(description="Name of the task list")
     description: str = Field(description="Description of what this task list tracks")
-    tasks: list[Task | ConnectorTask | StreamTask] = Field(
+    tasks: list[Task | ConnectorTask | StreamTask | FinalizationTask] = Field(
         default_factory=list, description="List of tasks"
     )
 
-    def get_task_by_id(self, task_id: str) -> Task | ConnectorTask | StreamTask | None:
+    def get_task_by_id(
+        self, task_id: str
+    ) -> Task | ConnectorTask | StreamTask | FinalizationTask | None:
         """Get a task by its ID."""
         for task in self.tasks:
             if task.id == task_id:
                 return task
         return None
 
-    def add_task(self, task: Task | ConnectorTask | StreamTask) -> Task:
+    def add_task(
+        self, task: Task | ConnectorTask | StreamTask | FinalizationTask
+    ) -> Task:
         """Add a new task to the list."""
         self.tasks.append(task)
         return task
 
     def insert_task(
-        self, position: int, task: Task | ConnectorTask | StreamTask
+        self, position: int, task: Task | ConnectorTask | StreamTask | FinalizationTask
     ) -> Task:
         """Insert a new task at a specific position (0-indexed)."""
         position = max(0, min(position, len(self.tasks)))
@@ -106,14 +122,14 @@ class TaskList(BaseModel):
         not_started = sum(1 for t in self.tasks if t.status == TaskStatus.NOT_STARTED)
         in_progress = sum(1 for t in self.tasks if t.status == TaskStatus.IN_PROGRESS)
         completed = sum(1 for t in self.tasks if t.status == TaskStatus.COMPLETED)
-        failed = sum(1 for t in self.tasks if t.status == TaskStatus.FAILED)
+        blocked = sum(1 for t in self.tasks if t.status == TaskStatus.BLOCKED)
 
         return {
             "total": total,
             "not_started": not_started,
             "in_progress": in_progress,
             "completed": completed,
-            "failed": failed,
+            "blocked": blocked,
         }
 
 
@@ -127,7 +143,7 @@ def create_default_connector_task_list() -> TaskList:
         description="Workflow for building and testing a new connector from scratch",
     )
 
-    tasks = [
+    connector_tasks = [
         (
             "collect-info",
             "Collect information from user",
@@ -143,6 +159,13 @@ def create_default_connector_task_list() -> TaskList:
             "Enumerate streams and create first stream's tasks",
             "Identify all available streams and create detailed tasks for implementing the first stream",
         ),
+    ]
+
+    for task_id, task_name, description in connector_tasks:
+        task = ConnectorTask(id=task_id, task_name=task_name, description=description)
+        task_list.add_task(task)
+
+    finalization_tasks = [
         (
             "readiness-pass-1",
             "Run connector readiness report",
@@ -155,8 +178,10 @@ def create_default_connector_task_list() -> TaskList:
         ),
     ]
 
-    for task_id, task_name, description in tasks:
-        task = ConnectorTask(id=task_id, task_name=task_name, description=description)
+    for task_id, task_name, description in finalization_tasks:
+        task = FinalizationTask(
+            id=task_id, task_name=task_name, description=description
+        )
         task_list.add_task(task)
 
     return task_list

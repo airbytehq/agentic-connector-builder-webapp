@@ -239,14 +239,14 @@ transformations:
             task_list = TaskList.model_validate_json(self.task_list_json)
             result = []
             for task in task_list.tasks:
-                if task.task_type == "stream":
+                if task.task_type != "connector":
                     continue
                 status = task.status.value
                 icon, color = {
                     "not_started": ("○", "gray.400"),
                     "in_progress": ("◐", "blue.400"),
                     "completed": ("●", "green.400"),
-                    "failed": ("✗", "red.400"),
+                    "blocked": ("⛔", "red.400"),
                 }.get(status, ("?", "gray.400"))
                 result.append(
                     {
@@ -278,7 +278,7 @@ transformations:
                     "not_started": ("○", "gray.400"),
                     "in_progress": ("◐", "blue.400"),
                     "completed": ("●", "green.400"),
-                    "failed": ("✗", "red.400"),
+                    "blocked": ("⛔", "red.400"),
                 }.get(status, ("?", "gray.400"))
                 result.append(
                     {
@@ -297,13 +297,45 @@ transformations:
             return []
 
     @rx.var
+    def finalization_tasks_view(self) -> list[dict[str, Any]]:
+        """Get finalization tasks as JSON-serializable view data."""
+        if not self.task_list_json:
+            return []
+        try:
+            task_list = TaskList.model_validate_json(self.task_list_json)
+            result = []
+            for task in task_list.tasks:
+                if task.task_type != "finalization":
+                    continue
+                status = task.status.value
+                icon, color = {
+                    "not_started": ("○", "gray.400"),
+                    "in_progress": ("◐", "blue.400"),
+                    "completed": ("●", "green.400"),
+                    "blocked": ("⛔", "red.400"),
+                }.get(status, ("?", "gray.400"))
+                result.append(
+                    {
+                        "id": task.id,
+                        "title": task.task_name,
+                        "details": task.description or "",
+                        "status": status,
+                        "icon": icon,
+                        "color": color,
+                    }
+                )
+            return result
+        except Exception:
+            return []
+
+    @rx.var
     def task_list_header(self) -> dict[str, Any]:
         """Get task list header information."""
         if not self.task_list_json:
             return {
                 "name": "",
                 "description": "",
-                "summary": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0},
+                "summary": {"total": 0, "completed": 0, "in_progress": 0, "blocked": 0},
             }
         try:
             task_list = TaskList.model_validate_json(self.task_list_json)
@@ -316,7 +348,7 @@ transformations:
             return {
                 "name": "Task List",
                 "description": "Error parsing task list",
-                "summary": {"total": 0, "completed": 0, "in_progress": 0, "failed": 0},
+                "summary": {"total": 0, "completed": 0, "in_progress": 0, "blocked": 0},
             }
 
     @rx.var
@@ -328,6 +360,11 @@ transformations:
     def has_stream_tasks(self) -> bool:
         """Check if there are any stream tasks."""
         return len(self.stream_tasks_view) > 0
+
+    @rx.var
+    def has_finalization_tasks(self) -> bool:
+        """Check if there are any finalization tasks."""
+        return len(self.finalization_tasks_view) > 0
 
     @rx.var
     def task_list_name(self) -> str:
@@ -385,13 +422,13 @@ transformations:
             return 0
 
     @rx.var
-    def task_failed_count(self) -> int:
-        """Get number of failed tasks."""
+    def task_blocked_count(self) -> int:
+        """Get number of blocked tasks."""
         if not self.task_list_json:
             return 0
         try:
             task_list = TaskList.model_validate_json(self.task_list_json)
-            return task_list.get_summary()["failed"]
+            return task_list.get_summary()["blocked"]
         except Exception:
             return 0
 
@@ -406,9 +443,9 @@ transformations:
         return f"{self.task_in_progress_count} In Progress"
 
     @rx.var
-    def failed_text(self) -> str:
-        """Get formatted failed text."""
-        return f"{self.task_failed_count} Failed"
+    def blocked_text(self) -> str:
+        """Get formatted blocked text."""
+        return f"{self.task_blocked_count} Blocked"
 
     _cached_agent: Any = None
     _cached_api_key: str | None = None

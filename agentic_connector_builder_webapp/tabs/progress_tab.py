@@ -29,7 +29,7 @@ def progress_tab_content() -> rx.Component:
                         color_scheme="blue",
                     ),
                     rx.badge(
-                        ConnectorBuilderState.failed_text,
+                        ConnectorBuilderState.blocked_text,
                         color_scheme="red",
                     ),
                     spacing="2",
@@ -115,6 +115,42 @@ def progress_tab_content() -> rx.Component:
                             width="100%",
                         ),
                         spacing="2",
+                        align="start",
+                        width="100%",
+                        mb=6,
+                    ),
+                    rx.fragment(),
+                ),
+                rx.cond(
+                    ConnectorBuilderState.has_finalization_tasks,
+                    rx.vstack(
+                        rx.heading("Finalization Tasks", size="5", mb=2),
+                        rx.foreach(
+                            ConnectorBuilderState.finalization_tasks_view,
+                            lambda task: rx.hstack(
+                                rx.text(
+                                    task["icon"],
+                                    color=task["color"],
+                                    font_size="1.2em",
+                                ),
+                                rx.vstack(
+                                    rx.text(task["title"], font_weight="500"),
+                                    rx.cond(
+                                        task["details"],
+                                        rx.text(
+                                            task["details"], color="gray.500", size="2"
+                                        ),
+                                        rx.fragment(),
+                                    ),
+                                    spacing="1",
+                                    align="start",
+                                ),
+                                spacing="3",
+                                align="start",
+                                width="100%",
+                            ),
+                        ),
+                        spacing="3",
                         align="start",
                         width="100%",
                         mb=6,

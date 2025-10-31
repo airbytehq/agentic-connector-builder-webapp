@@ -12,7 +12,13 @@ from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
 from pydantic_ai.tools import ToolDefinition
 
-from .task_list import ConnectorTask, StreamTask, TaskList, TaskStatus
+from .task_list import (
+    ConnectorTask,
+    FinalizationTask,
+    StreamTask,
+    TaskList,
+    TaskStatus,
+)
 
 
 class FormField(str, Enum):
@@ -166,6 +172,30 @@ SYSTEM_PROMPT = (
     "provided from the current YAML editor content. Just provide the other required "
     "parameters like config, stream_name, etc."
     "\n\n"
+    "CHECKLIST DISCIPLINE:\n"
+    "You have access to a task list tracking system with three types of tasks:\n"
+    "1. Connector Tasks (pre-stream work) - General connector setup and configuration\n"
+    "2. Stream Tasks (stream-specific work) - Tasks for individual streams\n"
+    "3. Finalization Tasks (post-stream work) - Final validation and cleanup\n\n"
+    "Task Management Guidelines:\n"
+    "- ALWAYS call list_tasks at the start of your work or when planning next steps to see the current task list\n"
+    "- When you start working on a task, mark it as IN_PROGRESS using update_task_status\n"
+    "- When you complete a task, mark it as COMPLETED with task_status_detail describing what was accomplished\n"
+    "- If a task is blocked, mark it as BLOCKED with task_status_detail explaining the blocker\n"
+    "- Unless the user requests otherwise, automatically proceed to the next task after completing one\n"
+    "- If you encounter a blocker:\n"
+    "  1. Mark the current task as BLOCKED with details about the issue\n"
+    "  2. If possible, add a follow-up task to unblock it later\n"
+    "  3. Report back to the user for assistance\n"
+    "- Use the task tools (add_connector_task, add_stream_task, add_finalization_task, etc.) to keep the UI in sync\n"
+    "- The task list is visible to the user in the Progress tab, so keep it updated as you work\n\n"
+    "Available Task Tools:\n"
+    "- list_tasks: View all tasks grouped by type (Connector, Stream, Finalization)\n"
+    "- add_connector_task, insert_connector_task: Add general connector tasks\n"
+    "- add_stream_task, insert_stream_task: Add stream-specific tasks (requires stream_name)\n"
+    "- add_finalization_task, insert_finalization_task: Add post-stream finalization tasks\n"
+    "- update_task_status: Update task status (not_started, in_progress, completed, blocked) with optional task_status_detail\n"
+    "- remove_task: Remove tasks that are no longer needed\n\n"
     "Be concise and helpful."
 )
 
@@ -463,7 +493,6 @@ def create_chat_agent() -> Agent:
         except Exception as e:
             return f"Error setting connector name: {str(e)}"
 
-<<<<<<< HEAD
     @agent.tool
     def list_tasks(ctx: RunContext[SessionDeps]) -> str:
         """List all tasks in the current task list with their statuses.
@@ -471,8 +500,13 @@ def create_chat_agent() -> Agent:
         Use this tool to view the current task list, check task statuses,
         and understand what work has been completed or is in progress.
 
+        Tasks are organized into three sections:
+        1. Connector Tasks (pre-stream work)
+        2. Stream Tasks (stream-specific work)
+        3. Finalization Tasks (post-stream work)
+
         Returns:
-            A formatted string showing all tasks with their IDs, names, and statuses.
+            A formatted string showing all tasks grouped by type with their IDs, names, and statuses.
         """
         try:
             if not ctx.deps.task_list_json:
@@ -485,24 +519,54 @@ def create_chat_agent() -> Agent:
                 f"Task List: {task_list.name}",
                 f"Description: {task_list.description}",
                 f"\nSummary: {summary['completed']}/{summary['total']} completed, "
-                f"{summary['in_progress']} in progress, {summary['failed']} failed\n",
-                "Tasks:",
+                f"{summary['in_progress']} in progress, {summary['blocked']} blocked\n",
             ]
 
-            for i, task in enumerate(task_list.tasks, 1):
-                status_icon = {
-                    TaskStatus.NOT_STARTED: "○",
-                    TaskStatus.IN_PROGRESS: "◐",
-                    TaskStatus.COMPLETED: "●",
-                    TaskStatus.FAILED: "✗",
-                }.get(task.status, "?")
+            status_icon_map = {
+                TaskStatus.NOT_STARTED: "○",
+                TaskStatus.IN_PROGRESS: "◐",
+                TaskStatus.COMPLETED: "●",
+                TaskStatus.BLOCKED: "⛔",
+            }
 
-                task_info = f"{i}. [{status_icon}] {task.task_name} (ID: {task.id}, Status: {task.status.value})"
-                if isinstance(task, StreamTask):
-                    task_info += f" [Stream: {task.stream_name}]"
-                if task.description:
-                    task_info += f"\n   Description: {task.description}"
-                result.append(task_info)
+            connector_tasks = [t for t in task_list.tasks if t.task_type == "connector"]
+            stream_tasks = [t for t in task_list.tasks if t.task_type == "stream"]
+            finalization_tasks = [t for t in task_list.tasks if t.task_type == "finalization"]
+
+            if connector_tasks:
+                result.append("\n=== Connector Tasks (Pre-Stream) ===")
+                for i, task in enumerate(connector_tasks, 1):
+                    status_icon = status_icon_map.get(task.status, "?")
+                    task_info = f"{i}. [{status_icon}] {task.task_name} (ID: {task.id}, Status: {task.status.value})"
+                    if task.description:
+                        task_info += f"\n   Description: {task.description}"
+                    if task.task_status_detail:
+                        task_info += f"\n   Status Detail: {task.task_status_detail}"
+                    result.append(task_info)
+
+            if stream_tasks:
+                result.append("\n=== Stream Tasks ===")
+                for i, task in enumerate(stream_tasks, 1):
+                    status_icon = status_icon_map.get(task.status, "?")
+                    task_info = f"{i}. [{status_icon}] {task.task_name} (ID: {task.id}, Status: {task.status.value})"
+                    if isinstance(task, StreamTask):
+                        task_info += f" [Stream: {task.stream_name}]"
+                    if task.description:
+                        task_info += f"\n   Description: {task.description}"
+                    if task.task_status_detail:
+                        task_info += f"\n   Status Detail: {task.task_status_detail}"
+                    result.append(task_info)
+
+            if finalization_tasks:
+                result.append("\n=== Finalization Tasks (Post-Stream) ===")
+                for i, task in enumerate(finalization_tasks, 1):
+                    status_icon = status_icon_map.get(task.status, "?")
+                    task_info = f"{i}. [{status_icon}] {task.task_name} (ID: {task.id}, Status: {task.status.value})"
+                    if task.description:
+                        task_info += f"\n   Description: {task.description}"
+                    if task.task_status_detail:
+                        task_info += f"\n   Status Detail: {task.task_status_detail}"
+                    result.append(task_info)
 
             return "\n".join(result)
 
@@ -691,24 +755,116 @@ def create_chat_agent() -> Agent:
             return f"Error inserting stream task: {str(e)}"
 
     @agent.tool
+    def add_finalization_task(
+        ctx: RunContext[SessionDeps],
+        task_id: Annotated[str, Field(description="Unique identifier for the task")],
+        task_name: Annotated[str, Field(description="Short name/title of the task")],
+        description: Annotated[
+            str | None,
+            Field(description="Optional longer description with additional context"),
+        ] = None,
+    ) -> str:
+        """Add a new finalization task to the end of the task list.
+
+        Use this tool to add a post-stream finalization task that should be
+        completed after all stream tasks are done.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            task_id: Unique identifier for the task
+            task_name: Short name/title of the task
+            description: Optional longer description with additional context
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+            task = FinalizationTask(
+                id=task_id, task_name=task_name, description=description
+            )
+            task_list.add_task(task)
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully added finalization task '{task_name}' (ID: {task_id}) to the task list."
+
+        except Exception as e:
+            return f"Error adding finalization task: {str(e)}"
+
+    @agent.tool
+    def insert_finalization_task(
+        ctx: RunContext[SessionDeps],
+        position: Annotated[
+            int, Field(description="Position to insert at (0-indexed, 0 = first)")
+        ],
+        task_id: Annotated[str, Field(description="Unique identifier for the task")],
+        task_name: Annotated[str, Field(description="Short name/title of the task")],
+        description: Annotated[
+            str | None,
+            Field(description="Optional longer description with additional context"),
+        ] = None,
+    ) -> str:
+        """Insert a new finalization task at a specific position in the task list.
+
+        Use this tool to insert a finalization task at a specific position
+        rather than at the end.
+
+        Args:
+            ctx: Runtime context with session dependencies
+            position: Position to insert at (0-indexed, 0 = first position)
+            task_id: Unique identifier for the task
+            task_name: Short name/title of the task
+            description: Optional longer description with additional context
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        try:
+            if not ctx.deps.task_list_json:
+                return "Error: No task list has been initialized yet."
+
+            task_list = TaskList.model_validate_json(ctx.deps.task_list_json)
+            task = FinalizationTask(
+                id=task_id, task_name=task_name, description=description
+            )
+            task_list.insert_task(position, task)
+            ctx.deps.task_list_json = task_list.model_dump_json()
+
+            return f"Successfully inserted finalization task '{task_name}' (ID: {task_id}) at position {position}."
+
+        except Exception as e:
+            return f"Error inserting finalization task: {str(e)}"
+
+    @agent.tool
     def update_task_status(
         ctx: RunContext[SessionDeps],
         task_id: Annotated[str, Field(description="ID of the task to update")],
         status: Annotated[
             str,
             Field(
-                description="New status: 'not_started', 'in_progress', 'completed', or 'failed'"
+                description="New status: 'not_started', 'in_progress', 'completed', or 'blocked'"
             ),
         ],
+        task_status_detail: Annotated[
+            str | None,
+            Field(
+                description="Optional details about the status change. Provide context when marking as completed, blocked, or in progress."
+            ),
+        ] = None,
     ) -> str:
         """Update the status of a task in the task list.
 
-        Use this tool to mark tasks as started, completed, or failed as work progresses.
+        Use this tool to mark tasks as started, completed, or blocked as work progresses.
+        Provide task_status_detail to give context about what was accomplished, what's blocking progress, etc.
 
         Args:
             ctx: Runtime context with session dependencies
             task_id: ID of the task to update
-            status: New status (not_started, in_progress, completed, or failed)
+            status: New status (not_started, in_progress, completed, or blocked)
+            task_status_detail: Optional details about the status change
 
         Returns:
             A confirmation message indicating success.
@@ -722,15 +878,20 @@ def create_chat_agent() -> Agent:
             try:
                 task_status = TaskStatus(status)
             except ValueError:
-                return f"Error: Invalid status '{status}'. Must be one of: not_started, in_progress, completed, failed"
+                return f"Error: Invalid status '{status}'. Must be one of: not_started, in_progress, completed, blocked"
 
-            success = task_list.update_task_status(task_id, task_status)
-            if not success:
+            task = task_list.get_task_by_id(task_id)
+            if not task:
                 return f"Error: Task with ID '{task_id}' not found in task list."
+
+            task.status = task_status
+            if task_status_detail:
+                task.task_status_detail = task_status_detail
 
             ctx.deps.task_list_json = task_list.model_dump_json()
 
-            return f"Successfully updated task '{task_id}' status to '{status}'."
+            detail_msg = f" with detail: {task_status_detail}" if task_status_detail else ""
+            return f"Successfully updated task '{task_id}' status to '{status}'{detail_msg}."
 
         except Exception as e:
             return f"Error updating task status: {str(e)}"
@@ -768,8 +929,6 @@ def create_chat_agent() -> Agent:
         except Exception as e:
             return f"Error removing task: {str(e)}"
 
-||||||| 71dd735
-=======
     @agent.tool
     def get_form_fields(ctx: RunContext[SessionDeps]) -> str:
         """Get the current values of all form fields in the requirements form.
@@ -831,5 +990,4 @@ def create_chat_agent() -> Agent:
         except Exception as e:
             return f"Error updating '{field_name.value}': {str(e)}"
 
->>>>>>> origin/main
     return agent
