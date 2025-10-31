@@ -1,8 +1,10 @@
 """Main Reflex application with YAML editor using reflex-monaco."""
 
+import os
+
 import reflex as rx
 
-from .components import chat_sidebar
+from .components import chat_sidebar, settings_button, settings_modal
 from .tabs import (
     code_tab_content,
     progress_tab_content,
@@ -24,6 +26,9 @@ class ConnectorBuilderState(rx.State):
     documentation_urls: str = ""
     functional_requirements: str = ""
     test_list: str = ""
+
+    settings_modal_open: bool = False
+    openai_api_key_input: str = ""
 
     yaml_content: str = """# Example YAML configuration
 name: example-connector
@@ -94,6 +99,32 @@ transformations:
         """Set the chat input value."""
         self.chat_input = value
 
+    def open_settings_modal(self):
+        """Open the settings modal."""
+        self.settings_modal_open = True
+
+    def close_settings_modal(self):
+        """Close the settings modal."""
+        self.settings_modal_open = False
+
+    def set_openai_api_key_input(self, value: str):
+        """Set the OpenAI API key input value."""
+        self.openai_api_key_input = value
+
+    def save_settings(self):
+        """Save settings (currently just closes modal as state is already updated)."""
+        self.settings_modal_open = False
+
+    def get_effective_api_key(self) -> str:
+        """Get the effective OpenAI API key (UI input takes precedence over env var)."""
+        if self.openai_api_key_input:
+            return self.openai_api_key_input
+        return os.environ.get("OPENAI_API_KEY", "")
+
+    def has_api_key(self) -> bool:
+        """Check if an API key is configured (either from env var or UI input)."""
+        return bool(self.get_effective_api_key())
+
     async def send_message(self):
         """Send a message to the chat agent and get streaming response."""
         if not self.chat_input.strip():
@@ -117,7 +148,13 @@ transformations:
             test_list=self.test_list,
         )
 
+        effective_api_key = self.get_effective_api_key()
+        original_api_key = os.environ.get("OPENAI_API_KEY")
+
         try:
+            if effective_api_key:
+                os.environ["OPENAI_API_KEY"] = effective_api_key
+
             async with chat_agent:
                 async with chat_agent.run_stream(
                     user_message, deps=session_deps
@@ -144,6 +181,10 @@ transformations:
             )
             self.current_streaming_message = ""
         finally:
+            if original_api_key is not None:
+                os.environ["OPENAI_API_KEY"] = original_api_key
+            elif effective_api_key:
+                os.environ.pop("OPENAI_API_KEY", None)
             self.chat_loading = False
 
 
@@ -221,10 +262,20 @@ def index() -> rx.Component:
         rx.box(
             rx.container(
                 rx.vstack(
-                    rx.heading(
-                        "Agentic Connector Builder",
-                        size="9",
-                        text_align="center",
+                    rx.flex(
+                        rx.heading(
+                            "Agentic Connector Builder",
+                            size="9",
+                            text_align="center",
+                        ),
+                        settings_button(
+                            has_api_key=ConnectorBuilderState.has_api_key,
+                            on_click=ConnectorBuilderState.open_settings_modal,
+                        ),
+                        justify="center",
+                        align="center",
+                        gap="4",
+                        width="100%",
                         mb=6,
                     ),
                     rx.text(
@@ -245,6 +296,13 @@ def index() -> rx.Component:
             ),
             margin_left=SIDEBAR_WIDTH_PERCENT,
             width=MAIN_CONTENT_WIDTH_PERCENT,
+        ),
+        settings_modal(
+            is_open=ConnectorBuilderState.settings_modal_open,
+            openai_api_key=ConnectorBuilderState.openai_api_key_input,
+            on_open_change=ConnectorBuilderState.close_settings_modal,
+            on_api_key_change=ConnectorBuilderState.set_openai_api_key_input,
+            on_save=ConnectorBuilderState.save_settings,
         ),
     )
 
