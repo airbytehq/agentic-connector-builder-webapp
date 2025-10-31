@@ -83,8 +83,20 @@ class SessionDeps:
     documentation_urls: str
     functional_requirements: str
     test_list: str
-    set_source_api_name: callable = None
-    set_connector_name: callable = None
+from typing import Annotated, Any, Callable
+
+@dataclass
+class SessionDeps:
+    """Dependencies containing the current webapp session state."""
+    
+    yaml_content: str
+    connector_name: str
+    source_api_name: str
+    documentation_urls: str
+    functional_requirements: str
+    test_list: str
+    set_source_api_name: Callable[[str], Any] | None = None
+    set_connector_name: Callable[[str], Any] | None = None
 
 
 mcp_server = MCPServerStdio(
