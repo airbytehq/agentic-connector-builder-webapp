@@ -554,7 +554,7 @@ def create_chat_agent() -> Agent:
             )
 
             with urlopen(req, timeout=10) as response:
-                html_content = response.read().decode("utf-8", errors="ignore")
+                html_content = response.read().decode("utf-8", errors="replace")
 
             url_pattern = re.compile(
                 r'<a[^>]+class="result__url"[^>]*href="([^"]+)"[^>]*>([^<]+)</a>'
