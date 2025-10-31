@@ -214,7 +214,7 @@ transformations:
                 await ConnectorBuilderState._cached_agent.__aenter__()
                 ConnectorBuilderState._agent_started = True
             except Exception as e:
-                print(f"[_ensure_agent_started] Error starting agent: {e}")
+                print(f"[_ensure_agent_started] Error starting agent context for MCP server: {e}")
                 ConnectorBuilderState._cached_agent = None
                 ConnectorBuilderState._agent_started = False
                 raise
