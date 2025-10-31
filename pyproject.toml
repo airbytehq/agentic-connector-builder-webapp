@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "reflex",
     "reflex-monaco",
-    "pydantic-ai-slim[duckduckgo]",
+    "pydantic-ai-slim[duckduckgo,mcp]",
     "python-dotenv>=1.1.1",
 ]
 
@@ -29,6 +29,7 @@ packages = ["agentic_connector_builder_webapp"]
 
 [dependency-groups]
 dev = [
+    "pdoc>=15.0.0",
     "playwright>=1.54.0",
     "poethepoet>=0.37.0",
     "pytest>=8.4.1",
