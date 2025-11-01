@@ -121,6 +121,11 @@ code, pre {
   background-color: var(--color-blue-30) !important;
 }
 
+/* Header title should be white, not purple */
+.header-title {
+  color: #ffffff !important;
+}
+
 /* Responsive improvements */
 @media (max-width: 768px) {
   body {
