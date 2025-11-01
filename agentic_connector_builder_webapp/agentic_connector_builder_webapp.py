@@ -376,21 +376,25 @@ def index() -> rx.Component:
             rx.box(
                 rx.flex(
                     rx.flex(
-                        rx.link(
-                            rx.image(
-                                src="https://docs.airbyte.com/img/logo-light.png",
-                                alt="Airbyte Logo",
-                                height="60px",
-                                width="auto",
-                                class_name="logo",
+                        rx.box(
+                            rx.link(
+                                rx.image(
+                                    src="https://docs.airbyte.com/img/logo-light.png",
+                                    alt="Airbyte Logo",
+                                    height="60px",
+                                    width="auto",
+                                    class_name="logo",
+                                ),
+                                href="https://airbyte.com",
+                                is_external=True,
                             ),
-                            href="https://airbyte.com",
-                            is_external=True,
+                            px="2",
                         ),
                         rx.heading(
                             "AI Connector Builder",
                             size="8",
                             color="white",
+                            style={"color": "white"},
                         ),
                         gap="4",
                         align="center",
