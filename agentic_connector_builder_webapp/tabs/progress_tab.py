@@ -2,45 +2,46 @@
 
 import reflex as rx
 
+from ..state import ProgressState
+
 
 def progress_tab_content() -> rx.Component:
     """Render the progress tab with task list."""
-    from ..agentic_connector_builder_webapp import ConnectorBuilderState
 
     return rx.vstack(
         rx.heading("Progress", size="6", mb=4),
         rx.cond(
-            ConnectorBuilderState.has_task_list,
+            ProgressState.has_task_list,
             rx.vstack(
-                rx.heading(ConnectorBuilderState.task_list_name, size="6", mb=2),
+                rx.heading(ProgressState.task_list_name, size="6", mb=2),
                 rx.text(
-                    ConnectorBuilderState.task_list_description,
+                    ProgressState.task_list_description,
                     color="gray.500",
                     size="3",
                     mb=4,
                 ),
                 rx.hstack(
                     rx.badge(
-                        ConnectorBuilderState.completed_of_total_text,
+                        ProgressState.completed_of_total_text,
                         color_scheme="green",
                     ),
                     rx.badge(
-                        ConnectorBuilderState.in_progress_text,
+                        ProgressState.in_progress_text,
                         color_scheme="blue",
                     ),
                     rx.badge(
-                        ConnectorBuilderState.blocked_text,
+                        ProgressState.blocked_text,
                         color_scheme="red",
                     ),
                     spacing="2",
                     mb=6,
                 ),
                 rx.cond(
-                    ConnectorBuilderState.has_connector_tasks,
+                    ProgressState.has_connector_tasks,
                     rx.vstack(
                         rx.heading("Connector Tasks", size="5", mb=2),
                         rx.foreach(
-                            ConnectorBuilderState.connector_tasks_view,
+                            ProgressState.connector_tasks_view,
                             lambda task: rx.hstack(
                                 rx.text(
                                     task["icon"],
@@ -72,7 +73,7 @@ def progress_tab_content() -> rx.Component:
                     rx.fragment(),
                 ),
                 rx.cond(
-                    ConnectorBuilderState.has_stream_tasks,
+                    ProgressState.has_stream_tasks,
                     rx.vstack(
                         rx.heading("Stream Tasks", size="5", mb=2),
                         rx.table.root(
@@ -86,7 +87,7 @@ def progress_tab_content() -> rx.Component:
                             ),
                             rx.table.body(
                                 rx.foreach(
-                                    ConnectorBuilderState.stream_tasks_view,
+                                    ProgressState.stream_tasks_view,
                                     lambda task: rx.table.row(
                                         rx.table.cell(
                                             rx.text(
@@ -122,11 +123,11 @@ def progress_tab_content() -> rx.Component:
                     rx.fragment(),
                 ),
                 rx.cond(
-                    ConnectorBuilderState.has_finalization_tasks,
+                    ProgressState.has_finalization_tasks,
                     rx.vstack(
                         rx.heading("Finalization Tasks", size="5", mb=2),
                         rx.foreach(
-                            ConnectorBuilderState.finalization_tasks_view,
+                            ProgressState.finalization_tasks_view,
                             lambda task: rx.hstack(
                                 rx.text(
                                     task["icon"],

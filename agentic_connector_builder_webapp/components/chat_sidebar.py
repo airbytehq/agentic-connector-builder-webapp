@@ -1,6 +1,7 @@
 """Chat sidebar component using Reflex drawer."""
 
 import reflex as rx
+from reflex.components.radix.themes.layout.flex import flex
 
 
 def chat_bubble(message_str, is_user: bool) -> rx.Component:
@@ -73,8 +74,8 @@ def chat_sidebar(
             border_color="gray.700",
             width="100%",
         ),
-        rx.scroll_area(
-            rx.vstack(
+        rx.vstack(
+            rx.auto_scroll(
                 rx.foreach(messages, chat_message),
                 rx.cond(
                     current_streaming_message,
@@ -84,33 +85,43 @@ def chat_sidebar(
                 spacing="3",
                 width="100%",
             ),
-            flex="1",
+            rx.spacer(),
             width="100%",
+            height="80%",
+            # flex_grow="0",
         ),
-        rx.form(
-            rx.hstack(
-                rx.text_area(
-                    placeholder="Ask me anything about connector building...",
-                    value=input_value,
-                    on_change=on_input_change,
-                    disabled=loading,
-                    width="100%",
-                    size="3",
-                ),
-                rx.tooltip(
-                    rx.button(
-                        "Send",
-                        type="submit",
-                        loading=loading,
+        rx.separator(margin_top="4", margin_bottom="4", border_color="gray.700"),
+        rx.flex(
+            rx.form(
+                rx.hstack(
+                    rx.text_area(
+                        placeholder="Ask me anything about connector building...",
+                        value=input_value,
+                        on_change=on_input_change,
+                        disabled=loading,
+                        width="100%",
                         size="3",
                     ),
-                    content="Press Cmd+Enter to send your message",
+                    rx.form.submit(
+                        rx.tooltip(
+                            rx.button(
+                                "Send",
+                                type="submit",
+                                loading=loading,
+                                size="3",
+                            ),
+                            content="Press Cmd+Enter to send your message",
+                        ),
+                    ),
                 ),
+                on_submit=on_send,
                 width="100%",
+                mt=4,
             ),
-            on_submit=on_send,
             width="100%",
-            mt=4,
+            flex_direction="column",
+            flex_grow="1",
+            flex_shrink="1",
         ),
         spacing="4",
         width="100%",
