@@ -72,29 +72,21 @@ class TaskList(BaseModel):
 
     name: str = Field(description="Name of the task list")
     description: str = Field(description="Description of what this task list tracks")
-    tasks: list[Task | ConnectorTask | StreamTask | FinalizationTask] = Field(
-        default_factory=list, description="List of tasks"
-    )
+    tasks: list[Task] = Field(default_factory=list, description="List of tasks")
 
-    def get_task_by_id(
-        self, task_id: str
-    ) -> Task | ConnectorTask | StreamTask | FinalizationTask | None:
+    def get_task_by_id(self, task_id: str) -> Task | None:
         """Get a task by its ID."""
         for task in self.tasks:
             if task.id == task_id:
                 return task
         return None
 
-    def add_task(
-        self, task: Task | ConnectorTask | StreamTask | FinalizationTask
-    ) -> Task:
+    def add_task(self, task: Task) -> Task:
         """Add a new task to the list."""
         self.tasks.append(task)
         return task
 
-    def insert_task(
-        self, position: int, task: Task | ConnectorTask | StreamTask | FinalizationTask
-    ) -> Task:
+    def insert_task(self, position: int, task: Task) -> Task:
         """Insert a new task at a specific position (0-indexed)."""
         position = max(0, min(position, len(self.tasks)))
         self.tasks.insert(position, task)
