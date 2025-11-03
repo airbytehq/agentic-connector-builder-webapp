@@ -14,6 +14,9 @@ from pydantic_ai.messages import (
 )
 
 from ..chat_agent import SessionDeps, create_chat_agent
+from .builder_state import BuilderState
+from .progress_state import ProgressState
+from .ui_state import UIState
 
 # HISTORY_MAX_MESSAGES = 20  # Maximum number of messages to include in conversation history
 
@@ -103,17 +106,11 @@ class ChatAgentState(rx.State):
                 self._agent_started = False
                 raise
 
-    def send_message(self):
+    async def send_message(self):
         """Trigger the background task to send a message."""
         if not self.chat_input.strip():
             return
 
-        # Import here to avoid circular dependency
-        from .builder_state import BuilderState
-        from .progress_state import ProgressState
-        from .ui_state import UIState
-
-        # Get other states
         ui_state = await self.get_state(UIState)
         builder_state = await self.get_state(BuilderState)
         progress_state = await self.get_state(ProgressState)

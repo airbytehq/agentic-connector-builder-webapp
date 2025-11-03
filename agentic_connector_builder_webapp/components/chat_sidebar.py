@@ -1,7 +1,6 @@
 """Chat sidebar component using Reflex drawer."""
 
 import reflex as rx
-from reflex.components.radix.themes.layout.flex import flex
 
 
 def chat_bubble(message_str, is_user: bool) -> rx.Component:
