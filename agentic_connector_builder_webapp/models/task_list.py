@@ -90,15 +90,15 @@ class FinalizationTask(Task):
 class TaskList(BaseModel):
     """Generic task list for tracking progress."""
 
-    basic_connector_tasks: list[Task] = Field(
+    basic_connector_tasks: list[ConnectorTask] = Field(
         default_factory=list,
         description="List of basic connector tasks",
     )
-    stream_tasks: list[Task] = Field(
+    stream_tasks: list[StreamTask] = Field(
         default_factory=list,
         description="List of stream tasks",
     )
-    finalization_tasks: list[Task] = Field(
+    finalization_tasks: list[FinalizationTask] = Field(
         default_factory=list,
         description="List of finalization tasks",
     )
