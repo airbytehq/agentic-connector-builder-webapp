@@ -19,6 +19,7 @@ name = "agentic-connector-builder-webapp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "dill" },
     { name = "pydantic-ai" },
     { name = "pydantic-ai-slim", extra = ["duckduckgo"] },
     { name = "python-dotenv" },
@@ -43,12 +44,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "dill", specifier = ">=0.4.0" },
     { name = "playwright", marker = "extra == 'dev'", specifier = ">=1.40.0" },
-    { name = "pydantic-ai" },
+    { name = "pydantic-ai", specifier = ">=1.9.1" },
     { name = "pydantic-ai-slim", extras = ["duckduckgo"] },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "python-dotenv", specifier = ">=1.1.1" },
-    { name = "reflex" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "reflex", specifier = ">=0.8.17" },
     { name = "reflex-monaco" },
 ]
 provides-extras = ["dev"]
@@ -459,6 +461,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8b/a3/f2ad1a105d0de9b77a78712cfca592c19a0ee8ca9a02970d8864a8d756d2/ddgs-9.6.1.tar.gz", hash = "sha256:15ec3aace0417c0ab3c0184059e1e03dbd6bda8d3be6108949c18ad7b4cd1e11", size = 35881, upload-time = "2025-10-12T18:36:33.656Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/58/4b35f13d21a44681e71ee8b1bca5755db0f84017cb29593eb0375aaa01e0/ddgs-9.6.1-py3-none-any.whl", hash = "sha256:e7d7e0c4dbae3f287627b9f6e411278256d7859d017bbad45b8229c230bf5270", size = 41577, upload-time = "2025-10-12T18:36:32.505Z" },
+]
+
+[[package]]
+name = "dill"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/80/630b4b88364e9a8c8c5797f4602d0f76ef820909ee32f0bacb9f90654042/dill-0.4.0.tar.gz", hash = "sha256:0633f1d2df477324f53a895b02c901fb961bdbf65a17122586ea7019292cbcf0", size = 186976, upload-time = "2025-04-16T00:41:48.867Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/3d/9373ad9c56321fdab5b41197068e1d8c25883b3fea29dd361f9b55116869/dill-0.4.0-py3-none-any.whl", hash = "sha256:44f54bf6412c2c8464c14e8243eb163690a9800dbe2c367330883b19c7561049", size = 119668, upload-time = "2025-04-16T00:41:47.671Z" },
 ]
 
 [[package]]
@@ -2017,11 +2028,11 @@ wheels = [
 
 [[package]]
 name = "python-dotenv"
-version = "1.1.1"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f6/b0/4bc07ccd3572a2f9df7e6782f52b0c6c90dcbb803ac4a167702d7d0dfe1e/python_dotenv-1.1.1.tar.gz", hash = "sha256:a8a6399716257f45be6a007360200409fce5cda2661e3dec71d23dc15f6189ab", size = 41978, upload-time = "2025-06-24T04:21:07.341Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/26/19cadc79a718c5edbec86fd4919a6b6d3f681039a2f6d66d14be94e75fb9/python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6", size = 44221, upload-time = "2025-10-26T15:12:10.434Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/ed/539768cf28c661b5b068d66d96a2f155c4971a5d55684a514c1a0e0dec2f/python_dotenv-1.1.1-py3-none-any.whl", hash = "sha256:31f23644fe2602f88ff55e1f5c79ba497e01224ee7737937930c448e4d0e24dc", size = 20556, upload-time = "2025-06-24T04:21:06.073Z" },
+    { url = "https://files.pythonhosted.org/packages/14/1b/a298b06749107c305e1fe0f814c6c74aea7b2f1e10989cb30f544a1b3253/python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61", size = 21230, upload-time = "2025-10-26T15:12:09.109Z" },
 ]
 
 [[package]]
@@ -2140,7 +2151,7 @@ wheels = [
 
 [[package]]
 name = "reflex"
-version = "0.8.16"
+version = "0.8.17"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "alembic" },
@@ -2161,9 +2172,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c3/fd/a805c685496593a9fe81c90d03ee9068949ab6eb68f83f277dd541aec04a/reflex-0.8.16.tar.gz", hash = "sha256:e5edd163e82359f2aa2aa717bec0bb87b8e1f5843fa57a7f5eaeafceb25b9203", size = 552818, upload-time = "2025-10-21T03:33:10.248Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/7a/63722f49d4589638b1d5f95de25141e088b335c9e01073156df90d7a376a/reflex-0.8.17.tar.gz", hash = "sha256:e9d3e241bfa2525e8acca32d2d37397e772ee500ede8fb50aaa4ddf2edd6aaec", size = 554940, upload-time = "2025-10-27T17:47:02.066Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/3f/8179b0c2964f5e2236c6967faf545ab1f381285343a07d012c89c1f9c224/reflex-0.8.16-py3-none-any.whl", hash = "sha256:fb11c5a1a8af0175d9ecf057998fb9a404efc0f80d15abdb988bd2180778f3ac", size = 793183, upload-time = "2025-10-21T03:33:07.685Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/a9/ea5e2b5d4d6d8a5941c3dc72ea1ca9cfc0d575f0aee440e2e1effa17899a/reflex-0.8.17-py3-none-any.whl", hash = "sha256:48d670dfbd70cc2242dae5d6555d35419f3611e21246efb1cc30d4a54d2b8fee", size = 795450, upload-time = "2025-10-27T17:46:59.832Z" },
 ]
 
 [[package]]
