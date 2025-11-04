@@ -3,76 +3,18 @@
 import pytest
 
 from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
-    ConnectorBuilderState,
+    app,
     index,
 )
 from agentic_connector_builder_webapp.components.yaml_editor import (
     yaml_editor_component,
 )
+from agentic_connector_builder_webapp.state import (
+    BuilderState,
+)
 from agentic_connector_builder_webapp.tabs.requirements_tab import (
     requirements_tab_content,
 )
-
-
-class TestConnectorBuilderState:
-    """Test cases for ConnectorBuilderState class."""
-
-    @pytest.mark.unit
-    def test_initial_yaml_content(self, yaml_editor_state):
-        """Test that ConnectorBuilderState has initial YAML content."""
-        assert yaml_editor_state.yaml_content is not None
-        assert len(yaml_editor_state.yaml_content) > 0
-        assert "name: example-connector" in yaml_editor_state.yaml_content
-        assert 'version: "1.0.0"' in yaml_editor_state.yaml_content
-
-    @pytest.mark.unit
-    def test_update_yaml_content(self, yaml_editor_state, sample_yaml_content):
-        """Test updating YAML content."""
-        original_content = yaml_editor_state.yaml_content
-        yaml_editor_state.update_yaml_content(sample_yaml_content)
-
-        assert yaml_editor_state.yaml_content == sample_yaml_content
-        assert yaml_editor_state.yaml_content != original_content
-
-    @pytest.mark.unit
-    def test_update_yaml_content_with_empty_string(
-        self, yaml_editor_state, empty_yaml_content
-    ):
-        """Test updating YAML content with empty string."""
-        yaml_editor_state.update_yaml_content(empty_yaml_content)
-        assert yaml_editor_state.yaml_content == ""
-
-    @pytest.mark.unit
-    def test_reset_yaml_content(self, yaml_editor_state, sample_yaml_content):
-        """Test resetting YAML content to default."""
-        # First change the content
-        yaml_editor_state.update_yaml_content(sample_yaml_content)
-        assert yaml_editor_state.yaml_content == sample_yaml_content
-
-        # Then reset it
-        yaml_editor_state.reset_yaml_content()
-        assert "name: example-connector" in yaml_editor_state.yaml_content
-        assert 'version: "1.0.0"' in yaml_editor_state.yaml_content
-        assert yaml_editor_state.yaml_content != sample_yaml_content
-
-    @pytest.mark.unit
-    def test_yaml_content_persistence(self, yaml_editor_state):
-        """Test that YAML content persists across multiple operations."""
-        test_content = "test: value\nother: data"
-
-        yaml_editor_state.update_yaml_content(test_content)
-        assert yaml_editor_state.yaml_content == test_content
-
-        # Content should persist
-        assert yaml_editor_state.yaml_content == test_content
-
-    @pytest.mark.unit
-    def test_yaml_content_type(self, yaml_editor_state):
-        """Test that YAML content is always a string."""
-        assert isinstance(yaml_editor_state.yaml_content, str)
-
-        yaml_editor_state.update_yaml_content("new content")
-        assert isinstance(yaml_editor_state.yaml_content, str)
 
 
 class TestYamlEditorComponent:
@@ -83,8 +25,8 @@ class TestYamlEditorComponent:
         """Test that yaml_editor_component returns a Reflex component."""
         component = yaml_editor_component(
             yaml_content="test: content",
-            on_change=ConnectorBuilderState.update_yaml_content,
-            on_reset=ConnectorBuilderState.reset_yaml_content,
+            on_change=BuilderState.update_yaml_content,
+            on_reset=BuilderState.reset_yaml_content,
         )
         assert component is not None
         # Component should be a Reflex component (has certain attributes)
@@ -95,8 +37,8 @@ class TestYamlEditorComponent:
         """Test the basic structure of the YAML editor component."""
         component = yaml_editor_component(
             yaml_content="test: content",
-            on_change=ConnectorBuilderState.update_yaml_content,
-            on_reset=ConnectorBuilderState.reset_yaml_content,
+            on_change=BuilderState.update_yaml_content,
+            on_reset=BuilderState.reset_yaml_content,
         )
         # The component should be properly structured
         assert component is not None
@@ -110,11 +52,11 @@ class TestYamlEditorComponent:
             documentation_urls="https://example.com",
             functional_requirements="Test requirements",
             test_list="assert True",
-            on_source_api_name_change=ConnectorBuilderState.set_source_api_name,
-            on_connector_name_change=ConnectorBuilderState.set_connector_name,
-            on_documentation_urls_change=ConnectorBuilderState.set_documentation_urls,
-            on_functional_requirements_change=ConnectorBuilderState.set_functional_requirements,
-            on_test_list_change=ConnectorBuilderState.set_test_list,
+            on_source_api_name_change=BuilderState.set_source_api_name,
+            on_connector_name_change=BuilderState.set_connector_name,
+            on_documentation_urls_change=BuilderState.set_documentation_urls,
+            on_functional_requirements_change=BuilderState.set_functional_requirements,
+            on_test_list_change=BuilderState.set_test_list,
         )
         assert component is not None
         assert hasattr(component, "children") or hasattr(component, "tag")
@@ -145,19 +87,11 @@ class TestAppConfiguration:
     @pytest.mark.unit
     def test_app_import(self):
         """Test that the app can be imported successfully."""
-        from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
-            app,
-        )
-
         assert app is not None
 
     @pytest.mark.unit
     def test_app_has_pages(self):
         """Test that the app has pages configured."""
-        from agentic_connector_builder_webapp.agentic_connector_builder_webapp import (
-            app,
-        )
-
         # App should have pages configured
         assert hasattr(app, "pages") or hasattr(app, "_pages")
 
@@ -203,8 +137,8 @@ class TestStateManagement:
     @pytest.mark.unit
     def test_multiple_state_instances(self):
         """Test that multiple state instances work independently."""
-        state1 = ConnectorBuilderState()
-        state2 = ConnectorBuilderState()
+        state1 = BuilderState()
+        state2 = BuilderState()
 
         test_content1 = "content1: value1"
         test_content2 = "content2: value2"

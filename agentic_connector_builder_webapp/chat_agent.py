@@ -1,19 +1,29 @@
 """Simple PydanticAI chat agent for connector building assistance."""
 
 import json
-from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Annotated, Any
 
+import reflex as rx
 from pydantic import Field
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 from pydantic_ai.mcp import CallToolFunc, MCPServerStdio, ToolResult
 from pydantic_ai.tools import ToolDefinition
 
+from ._guidance import SYSTEM_PROMPT
+from .models.task_list import (
+    ConnectorTask,
+    FinalizationTask,
+    StreamTask,
+    TaskList,
+    TaskStatusEnum,
+    TaskTypeEnum,
+)
 
-class FormField(str, Enum):
+
+class FormFieldEnum(StrEnum):
     """Enum representing editable form fields in the requirements form."""
 
     source_api_name = "source_api_name"
@@ -24,7 +34,7 @@ class FormField(str, Enum):
 
 
 FORM_FIELD_DESC = "The form field to update. One of: " + ", ".join(
-    f.value for f in FormField
+    f.value for f in FormFieldEnum
 )
 
 MANIFEST_TOOLS = {
@@ -96,17 +106,14 @@ async def process_tool_call(
 class SessionDeps:
     """Dependencies containing the current webapp session state."""
 
+    chat_state: rx.State
     yaml_content: str
     connector_name: str
     source_api_name: str
     documentation_urls: str
     functional_requirements: str
     test_list: str
-    set_source_api_name: Callable[[str], Any] | None = None
-    set_connector_name: Callable[[str], Any] | None = None
-    set_documentation_urls: Callable[[str], Any] | None = None
-    set_functional_requirements: Callable[[str], Any] | None = None
-    set_test_list: Callable[[str], Any] | None = None
+    task_list: TaskList
 
 
 mcp_server = MCPServerStdio(
@@ -120,52 +127,6 @@ mcp_server = MCPServerStdio(
 
 prepared_mcp_server = mcp_server.prepared(prepare_mcp_tools)
 
-SYSTEM_PROMPT = (
-    "You are a helpful assistant for the Agentic Connector Builder. "
-    "You help users build data connectors by answering questions about "
-    "YAML configuration, connector requirements, data transformations, "
-    "and best practices. You have access to tools for validating manifests, "
-    "testing streams, generating scaffolds, and more. You can also access "
-    "the current state of the user's work including their YAML configuration "
-    "and connector metadata. Be concise and helpful.\n\n"
-    "WORKFLOW FOR NEW CONNECTORS:\n"
-    "When a user tells you what API they want to build a connector for, you MUST complete ALL of these steps in your FIRST response:\n"
-    "1. Use set_api_name to set the API name (e.g., 'JSONPlaceholder API')\n"
-    "2. Use set_connector_name to set the connector name (e.g., 'source-jsonplaceholder')\n"
-    "3. Use duckduckgo_search to search for '[API name] official documentation' or '[API name] API reference'\n"
-    "4. Extract official documentation URLs from the search results (prefer docs.*, developer.*, api.* domains)\n"
-    "5. Use update_form_field with FormField.documentation_urls to populate the documentation URLs (newline-delimited)\n"
-    "CRITICAL: Execute ALL FIVE steps above automatically. Do NOT ask the user if they want documentation URLs - just search for and populate them automatically.\n"
-    "After completing all five steps, you can ask what the user wants to do next.\n"
-    "Use get_form_fields anytime you need to check the current state of the form.\n\n"
-    "FORM FIELD TOOLS:\n"
-    "- get_form_fields: Check current values of all form fields\n"
-    "- update_form_field: Update any form field using FormField enum (source_api_name, connector_name, documentation_urls, functional_requirements, test_list)\n"
-    "- set_api_name: Specific tool for setting the API name\n"
-    "- set_connector_name: Specific tool for setting the connector name\n"
-    "- duckduckgo_search: Search the web using DuckDuckGo. Use this to find official API documentation URLs. Prefer official docs domains (docs.*, developer.*, api.*) and extract URLs from results.\n\n"
-    "IMPORTANT: You MUST emit status messages when using tools. These messages help users "
-    "understand what you're doing:\n\n"
-    "1. Acknowledge the user's request before you start.\n"
-    "2. BEFORE calling any tool, emit: '🛠️ Now running [tool name] to [purpose]...'\n"
-    "   Example: '🛠️ Now running Validate Connector Manifest to check your configuration...'\n\n"
-    "3. AFTER successful tool execution, emit: '✅ Tool completed, [summary]...'\n"
-    "   Example: '✅ Tool completed, successfully retrieved development checklist with 15 items.'\n\n"
-    "4. AFTER failed tool execution, emit: '❌ Tool failed, [summary]...'\n"
-    "   Example: '❌ Tool failed, manifest validation errors: missing required fields.'\n\n"
-    "5. When planning next actions, emit: '⚙️ Next, I'll [what you plan to do]...'\n"
-    "   Example: '⚙️ Next, I'll validate the updated manifest to ensure all fields are correct.'\n\n"
-    "Always include these status messages in your responses - they are required for all tool interactions."
-    "\n\n"
-    "IMPORTANT: When using tools like validate_manifest, execute_stream_test_read, "
-    "execute_record_counts_smoke_test, and execute_dynamic_manifest_resolution_test, "
-    "you do NOT need to provide the 'manifest' parameter - it will be automatically "
-    "provided from the current YAML editor content. Just provide the other required "
-    "parameters like config, stream_name, etc."
-    "\n\n"
-    "Be concise and helpful."
-)
-
 
 def create_chat_agent() -> Agent:
     """Create a new chat agent instance.
@@ -176,10 +137,11 @@ def create_chat_agent() -> Agent:
     Returns:
         A new Agent instance configured for connector building assistance.
     """
-    agent = Agent(
-        "openai:gpt-4o-mini",
+    agent: Agent[SessionDeps, str] = Agent(
+        model="openai:gpt-4o-mini",
         deps_type=SessionDeps,
-        system_prompt=SYSTEM_PROMPT,
+        instructions=SYSTEM_PROMPT,
+        # system_prompt=SYSTEM_PROMPT,  # Doesn't work. Must pass via `instructions` param
         tools=[duckduckgo_search_tool()],
         toolsets=[prepared_mcp_server],
     )
@@ -410,23 +372,11 @@ def create_chat_agent() -> Agent:
         Use this tool when the user tells you what API they want to build a connector for.
         This will populate the 'Source API name' field in the Define Requirements tab.
 
-        Args:
-            ctx: Runtime context with session dependencies
-            api_name: The name of the API
-
         Returns:
             A confirmation message indicating success.
         """
-        try:
-            if ctx.deps.set_source_api_name:
-                ctx.deps.set_source_api_name(api_name)
-                return f"Successfully set the Source API Name to '{api_name}' in the requirements form."
-            else:
-                return (
-                    "Error: Unable to update Source API Name (callback not available)"
-                )
-        except Exception as e:
-            return f"Error setting API name: {str(e)}"
+        ctx.deps.source_api_name = api_name  # Deferred state update to session deps
+        return f"Successfully set the Source API Name to '{api_name}' in the requirements form."
 
     @agent.tool
     def set_connector_name(
@@ -444,21 +394,147 @@ def create_chat_agent() -> Agent:
         The connector name should follow the format 'source-{name}' where {name} is derived
         from the API name (e.g., 'JSONPlaceholder API' -> 'source-jsonplaceholder').
 
-        Args:
-            ctx: Runtime context with session dependencies
-            connector_name: The connector name in source-{name} format
+        Returns:
+            A confirmation message indicating success.
+        """
+        # Deferred state update to session deps
+        ctx.deps.connector_name = connector_name
+
+    @agent.tool
+    def list_tasks(ctx: RunContext[SessionDeps]) -> str:
+        """List all tasks in the current task list with their statuses.
+
+        Use this tool to view the current task list, check task statuses,
+        and understand what work has been completed or is in progress.
+
+        Tasks are organized into three sections:
+        1. Connector Tasks (pre-stream work)
+        2. Stream Tasks (stream-specific work)
+        3. Finalization Tasks (post-stream work)
+
+        Returns:
+            A formatted string showing all tasks grouped by type with their IDs, names, and statuses.
+        """
+        return ctx.deps.task_list
+
+    @agent.tool
+    async def add_connector_task(
+        ctx: RunContext[SessionDeps],
+        task_type: Annotated[
+            TaskTypeEnum,
+            Field(
+                description="Type of the task.",
+            ),
+        ],
+        task_id: Annotated[
+            str,
+            Field(
+                description="Unique identifier for the task",
+            ),
+        ],
+        task_name: Annotated[
+            str,
+            Field(
+                description="Short name/title of the task",
+            ),
+        ],
+        description: Annotated[
+            str | None,
+            Field(description="Optional longer description with additional context"),
+        ] = None,
+        stream_name: Annotated[
+            str | None,
+            Field(
+                description="Name of the stream this task relates to (required if task_type is 'stream')",
+            ),
+        ] = None,
+    ) -> str:
+        """Add a new connector task to the end of the task list.
+
+        Use this tool to add a new generic connector task that doesn't relate
+        to a specific stream.
+
+        Returns:
+            A confirmation message indicating success.
+        """
+        if not ctx.deps.task_list:
+            raise ValueError("No task list has been initialized yet.")
+
+        task_list = ctx.deps.task_list
+        if task_type == TaskTypeEnum.FINALIZATION:
+            task_list.append_task(
+                FinalizationTask(
+                    id=task_id,
+                    task_name=task_name,
+                    description=description,
+                )
+            )
+        elif task_type == TaskTypeEnum.CONNECTOR:
+            task_list.append_task(
+                ConnectorTask(
+                    id=task_id,
+                    task_name=task_name,
+                    description=description,
+                )
+            )
+        elif task_type == TaskTypeEnum.STREAM:
+            if not stream_name:
+                raise ValueError("stream_name is required when task_type is 'stream'.")
+            task_list.append_task(
+                StreamTask(
+                    id=task_id,
+                    task_name=task_name,
+                    stream_name=stream_name,
+                    description=description,
+                )
+            )
+        else:
+            raise ValueError(f"Invalid task_type: {task_type}")
+
+        async with ctx.deps.chat_state as state:
+            state.task_list = task_list  # Trigger state update
+
+        return f"Successfully added connector task '{task_name}' (ID: {task_id}) to the task list."
+
+    @agent.tool
+    async def update_task_status(
+        ctx: RunContext[SessionDeps],
+        task_id: Annotated[str, Field(description="ID of the task to update")],
+        status: Annotated[
+            str,
+            Field(
+                description="New status: 'not_started', 'in_progress', 'completed', or 'blocked'"
+            ),
+        ],
+        status_detail: Annotated[
+            str | None,
+            Field(
+                description="Optional details about the status change. Provide context when marking as completed, blocked, or in progress."
+            ),
+        ] = None,
+    ) -> str:
+        """Update the status of a task in the task list.
+
+        Use this tool to mark tasks as started, completed, or blocked as work progresses.
+        Provide status_detail to give context about what was accomplished, what's blocking progress, etc.
 
         Returns:
             A confirmation message indicating success.
         """
         try:
-            if ctx.deps.set_connector_name:
-                ctx.deps.set_connector_name(connector_name)
-                return f"Successfully set the Connector Name to '{connector_name}' in the requirements form."
-            else:
-                return "Error: Unable to update Connector Name (callback not available)"
+            if ctx.deps.task_list is not None:
+                ctx.deps.task_list.update_task_status(
+                    task_id=task_id,
+                    status=TaskStatusEnum(status),
+                    status_detail=status_detail,
+                )
+                # Trigger state update through the chat_state
+                async with ctx.deps.chat_state:
+                    ctx.deps.chat_state.task_list = ctx.deps.task_list
+            return f"Successfully updated task '{task_id}' status to '{status}'."
+
         except Exception as e:
-            return f"Error setting connector name: {str(e)}"
+            return f"Error updating task status: {str(e)}"
 
     @agent.tool
     def get_form_fields(ctx: RunContext[SessionDeps]) -> str:
@@ -473,19 +549,19 @@ def create_chat_agent() -> Agent:
         Returns:
             A JSON string containing all current form field values.
         """
-        form_data = {
-            FormField.source_api_name.value: ctx.deps.source_api_name,
-            FormField.connector_name.value: ctx.deps.connector_name,
-            FormField.documentation_urls.value: ctx.deps.documentation_urls,
-            FormField.functional_requirements.value: ctx.deps.functional_requirements,
-            FormField.test_list.value: ctx.deps.test_list,
+        form_data: dict[str, str] = {
+            FormFieldEnum.source_api_name.value: ctx.deps.source_api_name,
+            FormFieldEnum.connector_name.value: ctx.deps.connector_name,
+            FormFieldEnum.documentation_urls.value: ctx.deps.documentation_urls,
+            FormFieldEnum.functional_requirements.value: ctx.deps.functional_requirements,
+            FormFieldEnum.test_list.value: ctx.deps.test_list,
         }
         return json.dumps(form_data, indent=2)
 
     @agent.tool
-    def update_form_field(
+    async def update_form_field(
         ctx: RunContext[SessionDeps],
-        field_name: Annotated[FormField, Field(description=FORM_FIELD_DESC)],
+        field_name: Annotated[FormFieldEnum, Field(description=FORM_FIELD_DESC)],
         value: Annotated[str, Field(description="The new value for the field")],
     ) -> str:
         """Update a single form field in the requirements form.
@@ -493,32 +569,19 @@ def create_chat_agent() -> Agent:
         This is a generic tool that can update any of the whitelisted form fields.
         Use this when you need to update form fields dynamically.
 
-        Args:
-            ctx: Runtime context with session dependencies
-            field_name: The form field to update
-            value: The new value for the field
-
         Returns:
             A confirmation message indicating success or an error message.
         """
-        field_setters: dict[FormField, Callable[[str], Any] | None] = {
-            FormField.source_api_name: ctx.deps.set_source_api_name,
-            FormField.connector_name: ctx.deps.set_connector_name,
-            FormField.documentation_urls: ctx.deps.set_documentation_urls,
-            FormField.functional_requirements: ctx.deps.set_functional_requirements,
-            FormField.test_list: ctx.deps.set_test_list,
-        }
-
-        setter = field_setters.get(field_name)
-        if not setter:
-            return f"Error: Setter for '{field_name.value}' is not available"
-
-        try:
-            setter(value)
-            return (
-                f"Successfully updated '{field_name.value}' in the requirements form."
-            )
-        except Exception as e:
-            return f"Error updating '{field_name.value}': {str(e)}"
+        match field_name:
+            case FormFieldEnum.source_api_name:
+                ctx.deps.source_api_name = value
+            case FormFieldEnum.connector_name:
+                ctx.deps.connector_name = value
+            case FormFieldEnum.documentation_urls:
+                ctx.deps.documentation_urls = value
+            case FormFieldEnum.functional_requirements:
+                ctx.deps.functional_requirements = value
+            case FormFieldEnum.test_list:
+                ctx.deps.test_list = value
 
     return agent
