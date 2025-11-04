@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from agentic_connector_builder_webapp.state import BuilderState
+
 # Add src directory to Python path for imports
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
@@ -53,6 +55,16 @@ description: A test connector
 source:
 type: api
 """
+
+
+@pytest.fixture
+def yaml_editor_state():
+    """Fixture providing a BuilderState instance for YAML editor testing.
+
+    This is a compatibility fixture that was reintroduced after the state refactor
+    to maintain backward compatibility with existing tests.
+    """
+    return BuilderState()
 
 
 # Configure pytest settings

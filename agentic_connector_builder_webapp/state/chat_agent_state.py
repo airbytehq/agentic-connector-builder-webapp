@@ -62,14 +62,16 @@ class ChatAgentState(rx.State):
                     "completed": ("●", "green.400"),
                     "blocked": ("⛔", "red.400"),
                 }.get(status, ("?", "gray.400"))
-                result.append({
-                    "id": task.id,
-                    "title": task.task_name,
-                    "details": task.description or "",
-                    "status": status,
-                    "icon": icon,
-                    "color": color,
-                })
+                result.append(
+                    {
+                        "id": task.id,
+                        "title": task.task_name,
+                        "details": task.description or "",
+                        "status": status,
+                        "icon": icon,
+                        "color": color,
+                    }
+                )
             return result
         except Exception:
             return []
@@ -89,15 +91,17 @@ class ChatAgentState(rx.State):
                     "completed": ("✅", "green.400"),
                     "blocked": ("⛔", "red.400"),
                 }.get(status, ("?", "gray.400"))
-                result.append({
-                    "id": task.id,
-                    "stream_name": task.stream_name,
-                    "title": task.task_name,
-                    "details": task.description or "",
-                    "status": status,
-                    "icon": icon,
-                    "color": color,
-                })
+                result.append(
+                    {
+                        "id": task.id,
+                        "stream_name": task.stream_name,
+                        "title": task.task_name,
+                        "details": task.description or "",
+                        "status": status,
+                        "icon": icon,
+                        "color": color,
+                    }
+                )
             result.sort(key=lambda r: (r["stream_name"], r["title"]))
             return result
         except Exception:
@@ -118,14 +122,16 @@ class ChatAgentState(rx.State):
                     "completed": ("✅", "green.400"),
                     "blocked": ("⛔", "red.400"),
                 }.get(status, ("?", "gray.400"))
-                result.append({
-                    "id": task.id,
-                    "title": task.task_name,
-                    "details": task.description or "",
-                    "status": status,
-                    "icon": icon,
-                    "color": color,
-                })
+                result.append(
+                    {
+                        "id": task.id,
+                        "title": task.task_name,
+                        "details": task.description or "",
+                        "status": status,
+                        "icon": icon,
+                        "color": color,
+                    }
+                )
             return result
         except Exception:
             return []
@@ -385,10 +391,12 @@ class ChatAgentState(rx.State):
                     print(f"[send_message] get_output failed: {type(e).__name__}: {e}")
 
             async with self:
-                self.chat_messages.append({
-                    "role": "assistant",
-                    "content": self.current_streaming_message,
-                })
+                self.chat_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": self.current_streaming_message,
+                    }
+                )
                 self.current_streaming_message = ""
 
                 builder_state: BuilderState = await self.get_state(BuilderState)
@@ -424,10 +432,12 @@ class ChatAgentState(rx.State):
 
         except Exception as e:
             async with self:
-                self.chat_messages.append({
-                    "role": "assistant",
-                    "content": f"Sorry, I encountered an error: {str(e)}",
-                })
+                self.chat_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": f"Sorry, I encountered an error: {str(e)}",
+                    }
+                )
                 self.current_streaming_message = ""
         finally:
             if original_api_key is not None:
