@@ -2,13 +2,15 @@
 
 import reflex as rx
 
+from agentic_connector_builder_webapp.state.chat_agent_state import ChatAgentState
+
 
 def chat_bubble(message_str, is_user: bool) -> rx.Component:
     """Render a chat bubble."""
     return rx.card(
         rx.cond(
             is_user,
-            rx.text(
+            rx.markdown(
                 message_str,
                 size="2",
                 color="white",
@@ -53,7 +55,7 @@ def chat_sidebar(
     messages,
     current_streaming_message,
     input_value,
-    loading,
+    agent_running,
     on_input_change,
     on_send,
 ) -> rx.Component:
@@ -94,22 +96,48 @@ def chat_sidebar(
             rx.form(
                 rx.hstack(
                     rx.text_area(
-                        placeholder="Ask me anything about connector building...",
-                        value=input_value,
+                        placeholder="...",
                         on_change=on_input_change,
-                        disabled=loading,
+                        disabled=agent_running,
                         width="100%",
                         size="3",
                     ),
-                    rx.form.submit(
-                        rx.tooltip(
-                            rx.button(
-                                "Send",
-                                type="submit",
-                                loading=loading,
-                                size="3",
+                    rx.vstack(
+                        rx.form.submit(
+                            rx.cond(
+                                ~ChatAgentState.has_started,
+                                rx.button(
+                                    "Demo",
+                                    type="button",
+                                    size="3",
+                                    on_click=ChatAgentState.start_demo,
+                                    color_scheme="jade",
+                                ),
+                                rx.tooltip(
+                                    rx.button(
+                                        rx.cond(
+                                            ChatAgentState.chat_input,
+                                            "Send",
+                                            "Continue",
+                                        ),
+                                        type="submit",
+                                        loading=agent_running,
+                                        size="3",
+                                        color_scheme="violet",
+                                    ),
+                                    content="Press Cmd+Enter to send your message",
+                                ),
                             ),
-                            content="Press Cmd+Enter to send your message",
+                        ),
+                        rx.cond(
+                            ChatAgentState.agent_running & ~ChatAgentState.agent_paused,
+                            rx.button(
+                                "Pause",
+                                size="3",
+                                on_click=ChatAgentState.pause_agent,
+                                color_scheme="red",
+                                type="button",
+                            ),
                         ),
                     ),
                 ),

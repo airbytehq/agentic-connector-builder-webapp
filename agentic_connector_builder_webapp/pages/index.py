@@ -25,7 +25,7 @@ def index() -> rx.Component:
                 messages=ChatAgentState.chat_messages,
                 current_streaming_message=ChatAgentState.current_streaming_message,
                 input_value=ChatAgentState.chat_input,
-                loading=ChatAgentState.chat_loading,
+                agent_running=ChatAgentState.agent_running,
                 on_input_change=ChatAgentState.set_chat_input,
                 on_send=ChatAgentState.send_message,
             ),
