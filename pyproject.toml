@@ -5,7 +5,7 @@ description = "A full-stack agentic connector builder webapp with YAML editing c
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "reflex>=0.8.17",
+    "reflex>=0.8.18",
     "reflex-monaco",
     "pydantic-ai",
     "pydantic-ai-slim[duckduckgo]",
