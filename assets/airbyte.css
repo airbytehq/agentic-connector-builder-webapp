@@ -74,13 +74,13 @@ a:hover {
 }
 
 /* Style buttons with Airbyte purple */
-button:not(.rt-reset) {
+.rt-Button {
   background-color: var(--airbyte-primary) !important;
   border-color: var(--airbyte-primary) !important;
   transition: background-color 0.2s ease;
 }
 
-button:not(.rt-reset):hover {
+.rt-Button:hover {
   background-color: var(--airbyte-primary-dark) !important;
   border-color: var(--airbyte-primary-dark) !important;
 }
@@ -115,13 +115,19 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.6;
 }
 
-/* Style code blocks */
-code, pre {
+/* Style code blocks (exclude Monaco editor to preserve its theme) */
+code:not(.monaco-editor *), 
+pre:not(.monaco-editor *) {
   border-radius: 8px;
   background-color: var(--color-blue-30) !important;
 }
 
-/* Header title should be white, not purple */
+/* Header container scoped styles */
+.app-header .rt-Heading {
+  color: #ffffff !important;
+}
+
+/* Legacy support for header-title class */
 .header-title {
   color: #ffffff !important;
 }

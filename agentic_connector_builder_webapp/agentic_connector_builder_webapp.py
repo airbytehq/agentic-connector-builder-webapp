@@ -379,7 +379,7 @@ def index() -> rx.Component:
                         rx.box(
                             rx.link(
                                 rx.image(
-                                    src="https://docs.airbyte.com/img/logo-light.png",
+                                    src="/airbyte-logo-light.png",
                                     alt="Airbyte Logo",
                                     height="60px",
                                     width="auto",
@@ -410,6 +410,7 @@ def index() -> rx.Component:
                 height=HEADER_HEIGHT,
                 display="flex",
                 align_items="center",
+                class_name="app-header",
             ),
             position="fixed",
             top="0",
