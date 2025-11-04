@@ -2,13 +2,15 @@
 
 import reflex as rx
 
+from agentic_connector_builder_webapp.state.chat_agent_state import ChatAgentState
+
 
 def chat_bubble(message_str, is_user: bool) -> rx.Component:
     """Render a chat bubble."""
     return rx.card(
         rx.cond(
             is_user,
-            rx.text(
+            rx.markdown(
                 message_str,
                 size="2",
                 color="white",
@@ -53,7 +55,7 @@ def chat_sidebar(
     messages,
     current_streaming_message,
     input_value,
-    loading,
+    agent_running,
     on_input_change,
     on_send,
 ) -> rx.Component:
@@ -73,8 +75,8 @@ def chat_sidebar(
             border_color="gray.700",
             width="100%",
         ),
-        rx.scroll_area(
-            rx.vstack(
+        rx.vstack(
+            rx.auto_scroll(
                 rx.foreach(messages, chat_message),
                 rx.cond(
                     current_streaming_message,
@@ -84,33 +86,69 @@ def chat_sidebar(
                 spacing="3",
                 width="100%",
             ),
-            flex="1",
+            rx.spacer(),
             width="100%",
+            height="80%",
+            # flex_grow="0",
         ),
-        rx.form(
-            rx.hstack(
-                rx.text_area(
-                    placeholder="Ask me anything about connector building...",
-                    value=input_value,
-                    on_change=on_input_change,
-                    disabled=loading,
-                    width="100%",
-                    size="3",
-                ),
-                rx.tooltip(
-                    rx.button(
-                        "Send",
-                        type="submit",
-                        loading=loading,
+        rx.separator(margin_top="4", margin_bottom="4", border_color="gray.700"),
+        rx.flex(
+            rx.form(
+                rx.hstack(
+                    rx.text_area(
+                        placeholder="...",
+                        on_change=on_input_change,
+                        disabled=agent_running,
+                        width="100%",
                         size="3",
                     ),
-                    content="Press Cmd+Enter to send your message",
+                    rx.vstack(
+                        rx.form.submit(
+                            rx.cond(
+                                ~ChatAgentState.has_started,
+                                rx.button(
+                                    "Demo",
+                                    type="button",
+                                    size="3",
+                                    on_click=ChatAgentState.start_demo,
+                                    color_scheme="jade",
+                                ),
+                                rx.tooltip(
+                                    rx.button(
+                                        rx.cond(
+                                            ChatAgentState.chat_input,
+                                            "Send",
+                                            "Continue",
+                                        ),
+                                        type="submit",
+                                        loading=agent_running,
+                                        size="3",
+                                        color_scheme="violet",
+                                    ),
+                                    content="Press Cmd+Enter to send your message",
+                                ),
+                            ),
+                        ),
+                        rx.cond(
+                            ChatAgentState.agent_running & ~ChatAgentState.agent_paused,
+                            rx.button(
+                                "Pause",
+                                size="3",
+                                on_click=ChatAgentState.pause_agent,
+                                color_scheme="red",
+                                type="button",
+                            ),
+                        ),
+                    ),
                 ),
+                on_submit=on_send,
                 width="100%",
+                mt=4,
             ),
-            on_submit=on_send,
             width="100%",
-            mt=4,
+            flex_direction="column",
+            flex_grow="1",
+            flex_shrink="1",
         ),
         spacing="4",
         width="100%",
