@@ -29,6 +29,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["agentic_connector_builder_webapp"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"rxconfig.py" = "rxconfig.py"
+
 [dependency-groups]
 dev = [
     "playwright>=1.54.0",

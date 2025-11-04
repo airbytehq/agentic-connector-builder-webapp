@@ -14,10 +14,10 @@ def main() -> None:
     """
     package_dir = Path(__file__).parent
 
-    if (package_dir / "rxconfig.py").exists():
-        app_dir = package_dir
-    elif (package_dir.parent / "rxconfig.py").exists():
+    if (package_dir.parent / "rxconfig.py").exists():
         app_dir = package_dir.parent
+    elif (package_dir / "rxconfig.py").exists():
+        app_dir = package_dir
     else:
         print(
             "Error: Could not find rxconfig.py. "
