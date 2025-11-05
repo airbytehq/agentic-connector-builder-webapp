@@ -19,6 +19,7 @@ name = "agentic-connector-builder-webapp"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "ddgs" },
     { name = "dill" },
     { name = "pydantic-ai" },
     { name = "pydantic-ai-slim", extra = ["duckduckgo"] },
@@ -44,6 +45,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ddgs", specifier = ">=9.7.1,<10.0" },
     { name = "dill", specifier = ">=0.4.0" },
     { name = "playwright", marker = "extra == 'dev'", specifier = ">=1.40.0" },
     { name = "pydantic-ai", specifier = ">=1.9.1" },
@@ -450,7 +452,7 @@ wheels = [
 
 [[package]]
 name = "ddgs"
-version = "9.6.1"
+version = "9.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -458,9 +460,9 @@ dependencies = [
     { name = "lxml" },
     { name = "primp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8b/a3/f2ad1a105d0de9b77a78712cfca592c19a0ee8ca9a02970d8864a8d756d2/ddgs-9.6.1.tar.gz", hash = "sha256:15ec3aace0417c0ab3c0184059e1e03dbd6bda8d3be6108949c18ad7b4cd1e11", size = 35881 }
+sdist = { url = "https://files.pythonhosted.org/packages/66/b6/881f4740a6c138fefe44707012f44860c0c6ff3cde1419e960cfd47f0a4d/ddgs-9.7.1.tar.gz", hash = "sha256:0a0f6878e50e64e2a396635f6754f13be8751d73a5b8c7d31acda729c97f4d66", size = 36486 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/58/4b35f13d21a44681e71ee8b1bca5755db0f84017cb29593eb0375aaa01e0/ddgs-9.6.1-py3-none-any.whl", hash = "sha256:e7d7e0c4dbae3f287627b9f6e411278256d7859d017bbad45b8229c230bf5270", size = 41577 },
+    { url = "https://files.pythonhosted.org/packages/5d/53/70c3bc616fd1f374f70832539aaa8996780d08cf4afa7edf6b0c6bb6d529/ddgs-9.7.1-py3-none-any.whl", hash = "sha256:f3768dc4054470b49547f41ebab0b09a034eb61e8884c992585898cc49687de0", size = 42383 },
 ]
 
 [[package]]

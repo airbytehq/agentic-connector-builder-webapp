@@ -13,11 +13,14 @@ def main() -> None:
     It locates the app directory (containing rxconfig.py) and runs reflex from there.
     """
     package_dir = Path(__file__).parent
+    cwd = Path.cwd()
 
-    if (package_dir / "rxconfig.py").exists():
-        app_dir = package_dir
+    if (cwd / "rxconfig.py").exists():
+        app_dir = cwd
     elif (package_dir.parent / "rxconfig.py").exists():
         app_dir = package_dir.parent
+    elif (package_dir / "rxconfig.py").exists():
+        app_dir = package_dir
     else:
         print(
             "Error: Could not find rxconfig.py. "
@@ -25,6 +28,9 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+
+    rxconfig_path = app_dir / "rxconfig.py"
+    print(f"Using rxconfig.py from: {rxconfig_path}", file=sys.stderr)
 
     cmd = ["reflex", "run"]
 
