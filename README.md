@@ -23,8 +23,6 @@ uvx -p 3.13 --from git+https://github.com/airbytehq/agentic-connector-builder-we
 
 This will automatically fetch and run the latest version from the `main` branch. The app will start at `http://localhost:3000`.
 
-**Note:** The `-p 3.13` flag ensures Python 3.13 is used, which is required for this application.
-
 ### Prerequisites
 
 - Python 3.13+
