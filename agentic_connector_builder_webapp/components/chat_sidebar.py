@@ -72,7 +72,7 @@ def chat_sidebar(
             mb=6,
             pb=4,
             border_bottom="1px solid",
-            border_color="gray.700",
+            border_color="gray.600",
             width="100%",
         ),
         rx.vstack(
