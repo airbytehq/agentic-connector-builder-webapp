@@ -18,10 +18,12 @@ A full-stack agentic connector builder webapp with YAML editing capabilities. Th
 Run the webapp directly from GitHub using `uvx`:
 
 ```bash
-uvx --from git+https://github.com/airbytehq/agentic-connector-builder-webapp agentic-connector-builder-webapp
+uvx -p 3.13 --from git+https://github.com/airbytehq/agentic-connector-builder-webapp agentic-connector-builder-webapp
 ```
 
 This will automatically fetch and run the latest version from the `main` branch. The app will start at `http://localhost:3000`.
+
+**Note:** The `-p 3.13` flag ensures Python 3.13 is used, which is required for this application.
 
 ### Prerequisites
 
