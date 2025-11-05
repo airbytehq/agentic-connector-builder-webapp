@@ -29,6 +29,9 @@ def main() -> None:
         )
         sys.exit(1)
 
+    rxconfig_path = app_dir / "rxconfig.py"
+    print(f"Using rxconfig.py from: {rxconfig_path}", file=sys.stderr)
+
     cmd = ["reflex", "run"]
 
     try:
